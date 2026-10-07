@@ -21,6 +21,7 @@ import re
 import shutil
 import statistics
 import subprocess
+import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -237,21 +238,24 @@ def parse_grade(text):
 def grade_one(ws, m, grader, manifest, cfg, claude_login):
     s = cfg["sets"][m["set"]]
     ev = next(e for e in s["evals"] if e["id"] == m["eval_id"])
-    gdir = ws / "grading" / grader / m["run_id"]
-    if gdir.exists():
-        shutil.rmtree(gdir)
-    shutil.copytree(ws / "blind" / m["run_id"], gdir)
-    shutil.copytree(ws / "blind" / "_context" / m["set"], gdir / "context")
+    # The grader works in a temporary folder outside the run workspace, so control/mapping.json (the arm of
+    # every run) is not next to it.
+    tmp = Path(tempfile.mkdtemp(prefix="grade-"))
+    gdir = tmp / "packet"
     g = manifest["executors"].get(grader) or cfg["executors"][grader]
     out, missing = None, []
-    for _ in (1, 2):  # a reply that cannot be parsed, or that leaves out an assertion, is asked for once more
-        r = backends.run(grader, gdir, grader_prompt(ev, s), g["model"], g.get("effort"), "grader",
-                         control(ws) / "raw-grades" / grader / m["run_id"], ws / "homes" / f"g-{grader}-{m['run_id']}",
-                         (), claude_login)
-        out = parse_grade(r["text"])
-        missing = missing_ids(out, ev)
-        if out and not missing:
-            break
+    try:
+        shutil.copytree(ws / "blind" / m["run_id"], gdir)
+        shutil.copytree(ws / "blind" / "_context" / m["set"], gdir / "context")
+        for _ in (1, 2):  # a reply that cannot be parsed, or that leaves out an assertion, is asked for once more
+            r = backends.run(grader, gdir, grader_prompt(ev, s), g["model"], g.get("effort"), "grader",
+                             control(ws) / "raw-grades" / grader / m["run_id"], tmp / "home", (), claude_login)
+            out = parse_grade(r["text"])
+            missing = grade_problems(out, ev)
+            if out and not missing:
+                break
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
     ok = bool(out) and not missing
     error = None if ok else (f"incomplete grade, missing {', '.join(missing)}" if out else (r["error"] or "unparseable reply"))
     write_json(control(ws) / "grades" / grader / f"{m['run_id']}.json",
@@ -260,11 +264,36 @@ def grade_one(ws, m, grader, manifest, cfg, claude_login):
 
 
 def missing_ids(out, ev):
-    """Judge assertions the grader's reply does not cover. A malformed reply can parse while dropping some
-    (for example an extra closing brace ends the assertions object early); a missing vote would count as FAIL."""
+    """Judge assertions the grader's reply does not cover with a true/false verdict. A malformed reply can parse
+    while dropping some (for example an extra closing brace ends the assertions object early); a missing vote
+    would count as FAIL, and a verdict like "false" (a string) would count as PASS."""
     want = [p["id"] for p in ev["parsed"] if p["check"] == "judge"]
     got = (out or {}).get("assertions") or {}
-    return [i for i in want if i not in got]
+    return [i for i in want if not isinstance(got.get(i), dict) or not isinstance(got[i].get("passed"), bool)]
+
+
+def grade_problems(out, ev):
+    """missing_ids plus 'holistic' when the reply has no holistic score from 1 to 5."""
+    score = (out or {}).get("holistic")
+    bad_score = isinstance(score, bool) or not isinstance(score, (int, float)) or not 1 <= score <= 5
+    return missing_ids(out, ev) + (["holistic"] if bad_score else [])
+
+
+def grade_gaps(ws, manifest, mapping, cfg):
+    """Runs that enter the aggregate without a complete grade from every assigned grader: a missing or non-bool
+    verdict, or no holistic score from 1 to 5."""
+    gaps = []
+    for m in mapping:
+        res = load_json(control(ws) / "results" / f"{m['run_id']}.json") or {}
+        if not res.get("ok") or not (control(ws) / "prog" / f"{m['run_id']}.json").exists():
+            continue
+        ev = next(e for e in cfg["sets"][m["set"]]["evals"] if e["id"] == m["eval_id"])
+        for g in manifest["graders"][m["executor"]]:
+            out = (load_json(control(ws) / "grades" / g / f"{m['run_id']}.json") or {}).get("result")
+            missing = grade_problems(out, ev)
+            if missing:
+                gaps.append(f"{m['run_id']} by {g}: missing {', '.join(missing)}")
+    return gaps
 
 
 def cmd_grade(a):
@@ -365,11 +394,18 @@ def outcome_test(rs, agents):
 def cmd_aggregate(a):
     ws, manifest, mapping, cfg = load_ws(a.ws)
     out = Path(a.out).resolve()
+    kind = manifest.get("kind") or ("confirm" if "holdout" in manifest["sets"] else "dev")
+    gaps = grade_gaps(ws, manifest, mapping, cfg)
+    if gaps:
+        if kind == "confirm" and not a.allow_incomplete:
+            raise SystemExit("incomplete grades; a confirmation aggregate needs every verdict from both graders "
+                             "(rerun grade, or pass --allow-incomplete to count missing verdicts as failures):\n  "
+                             + "\n  ".join(gaps))
+        print(f"warning: {len(gaps)} incomplete grade(s); missing verdicts count as failures:\n  " + "\n  ".join(gaps))
     if out.exists():
         if not (out / "benchmark.json").exists():
             raise SystemExit(f"{out} exists and is not an earlier aggregate; refusing to replace it")
         shutil.rmtree(out)
-    kind = manifest.get("kind") or ("confirm" if "holdout" in manifest["sets"] else "dev")
     agents = sorted({m["executor"] for m in mapping})
 
     runs = []
@@ -639,6 +675,9 @@ def main():
             q.add_argument("--out", required=True, help="the iteration folder, e.g. <skill>-workspace/iteration-6")
             q.add_argument("--ledger")
             q.add_argument("--note", help="one line for benchmark.json and the ledger, e.g. what was re-run")
+            q.add_argument("--allow-incomplete", action="store_true",
+                           help="aggregate a confirmation run with missing verdicts, counted as failures "
+                                "(reproduces iteration-10)")
     a = ap.parse_args()
     {"prepare": cmd_prepare, "run": cmd_run, "check": cmd_check, "grade": cmd_grade, "aggregate": cmd_aggregate,
      "status": cmd_status}[a.cmd](a)

@@ -18,7 +18,7 @@ It needs Node.js.
 | [distill](skills/distill/SKILL.md) | 1.1.0 | Removes outdated history from agent instructions, keeping only what the agent should do now. Reports first and edits only after you approve. | 96% | 66% | +30 points | [iteration-10](workspaces/distill-workspace/iteration-10/) |
 <!-- catalog:end -->
 
-Outcome pass rate is the share of outcome assertions that pass in a run, averaged over runs. A judged assertion passes only when both blind graders pass it. The runs were told to read the skill, so the numbers measure what the skill does once it is in use, not how often it is picked automatically. Per-agent results: [workspaces/distill-workspace/README.md](workspaces/distill-workspace/README.md). How skills are evaluated and admitted: [docs/evaluation.md](docs/evaluation.md).
+Outcome pass rate is the share of outcome assertions that pass in a run, averaged over runs. A judged assertion passes only when both graders pass it. Graders are not told which arm a run is, though an answer can reveal it ([docs/evaluation.md](docs/evaluation.md)). The runs were told to read the skill, so the numbers measure what the skill does once it is in use, not how often it is picked automatically. Per-agent results: [workspaces/distill-workspace/README.md](workspaces/distill-workspace/README.md). How skills are evaluated and admitted: [docs/evaluation.md](docs/evaluation.md).
 
 ## Use distill
 

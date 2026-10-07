@@ -1,7 +1,7 @@
 # eval-harness
 
 Measures whether a skill changes what an agent actually does. Each eval runs with and without the skill on several
-agent CLIs, and blind graders from other vendors judge the results. Python 3 standard library only.
+agent CLIs, and graders from other vendors, who are not told which arm a run is, judge the results. Python 3 standard library only.
 
 ## Requirements
 
@@ -16,7 +16,13 @@ agent CLIs, and blind graders from other vendors judge the results. Python 3 sta
   Only the CLI's credential file is linked in (codex, grok) or passed as a token (claude).
 - Claude Code runs with `--disable-slash-commands`; Grok with `GROK_*_SKILLS_ENABLED=false`. Each run records the
   skills its CLI reported (`skills_seen`).
-- A with-skill run is told to read a copy of `SKILL.md` alone, so it cannot read the skill's `evals/`.
+- A with-skill run is told to read a copy of `SKILL.md` alone; the copy has no `evals/`. The agents are not sandboxed to
+  that copy or to the fixture: a run can reach other runs' folders in the same workspace, and the harness does not
+  detect such reads.
+- Graders work in a temporary folder outside the run workspace that holds only the grading packet. They still read
+  the agent's answer, which can reveal the arm.
+- Claude Code and Grok run with permission prompts off (`bypassPermissions`, `--always-approve`) and inherit the
+  environment. Run the harness in a disposable VM or container.
 - Fixtures are git repositories replayed from a mbox with their original dates, so SHAs and `git blame` are stable.
 
 ## Usage
@@ -25,7 +31,7 @@ agent CLIs, and blind graders from other vendors judge the results. Python 3 sta
 H=eval-harness/harness.py
 python3 $H prepare --config <skill-workspace>/eval-config.json --sets dev --label iteration-6   # prints the workspace path
 python3 $H run       --ws <ws> --jobs 3
-python3 $H check     --ws <ws>          # programmatic assertions and blind grader packets
+python3 $H check     --ws <ws>          # programmatic assertions and grader packets without the arm
 python3 $H grade     --ws <ws> --jobs 3 # two graders per run, assigned in eval-config.json
 python3 $H aggregate --ws <ws> --out <skill-workspace>/iteration-6 --ledger <skill-workspace>/ledger.json
 python3 $H status    --ws <ws>
@@ -35,6 +41,10 @@ python3 -m unittest discover -s eval-harness/tests
 `eval-config.json` names the skill folder, the eval sets (`dev`, `holdout`), each agent's CLI, model and reasoning
 effort, and which graders judge which agent. By default no run is graded by its own vendor. An agent is a CLI with
 its model; results are reported per agent and pooled, never ranked across agents.
+
+`grade` asks a grader again when a reply leaves out a verdict, gives one that is not true or false, or has no
+holistic score. A confirmation aggregate (`prepare --kind confirm`) stops while any grade is still incomplete:
+run `grade` again, or pass `--allow-incomplete` to count the missing verdicts as failures.
 
 ## Trigger test
 

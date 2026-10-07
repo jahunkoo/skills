@@ -30,6 +30,8 @@ def claude_token():
     token = os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
     if token:
         return token
+    if shutil.which("security") is None:  # the keychain fallback is macOS only
+        return None
     p = subprocess.run(["security", "find-generic-password", "-a", os.environ.get("USER", ""), "-s", KEYCHAIN_ITEM, "-w"],
                        capture_output=True, text=True)
     return p.stdout.strip() or None
@@ -63,8 +65,9 @@ def isolated_env(backend, home, claude_login=False):
             env.update(HOME=str(home), CLAUDE_CONFIG_DIR=str(home / ".claude"), CLAUDE_CODE_OAUTH_TOKEN=token)
             return env, "temp-home"
         if not claude_login:
-            raise SystemExit("isolated Claude runs need a token: run `claude setup-token` and store it with "
-                             f"`security add-generic-password -a \"$USER\" -s {KEYCHAIN_ITEM} -w`, "
+            raise SystemExit("isolated Claude runs need a token: run `claude setup-token` and put it in "
+                             "$CLAUDE_CODE_OAUTH_TOKEN (on macOS, or store it with "
+                             f"`security add-generic-password -a \"$USER\" -s {KEYCHAIN_ITEM} -w`), "
                              "or pass --claude-login to use the normal login (recorded as isolation: none)")
         return os.environ.copy(), "none"
     raise ValueError(backend)
