@@ -1,0 +1,138 @@
+{
+ "assertion_results": [
+  {
+   "text": "[outcome·judge] d2.recall — In the final file, at least 5 of residue R1–R6 have been stripped (stripping only the backstory while keeping the concluding sentence counts)",
+   "passed": true,
+   "evidence": "claude: PASS — All six residue items were stripped. R1: only \"Release notes are written in `CHANGELOG.md` at the repo root.\" remains. R2: \"Release notes are written in English. That is because all of our customers are in the US.\" R3: the NB/TODO line is gone. R4: the format-guide reference is gone. R5: the §5 duplicate was removed and §2 kept. R6: the ADR-0003 line was removed. | codex: PASS — The final file strips R1–R4 and R6 and removes one of the duplicate R5 rules.",
+   "id": "d2.recall",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d2.keep — Live rules K1–K5 all remain in the final file with their meaning intact",
+   "passed": true,
+   "evidence": "claude: PASS — K1 is kept with its WHY clause (\"the tag script checks the version...\"). K2 lost only its backstory and now reads \"Pushing a `git tag` locally first makes the CI release job run twice, which publishes the notes twice. Only CI cuts tags.\" K3 keeps its ADR-0007 link, and K4 and K5 are unchanged. | codex: PASS — K1 retains the tag-script reason; K2 retains the CI double-run reason and CI-only rule; K3–K5 remain intact.",
+   "id": "d2.keep",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d2.conclusions — The concluding instructions of the stripped sentences (write in CHANGELOG.md, write in English, leave out skip-changelog PRs) remain in the final file",
+   "passed": true,
+   "evidence": "claude: PASS — The final file still says to write in CHANGELOG.md, to write in English, and \"Leave PRs labeled `skip-changelog` out of the notes.\" | codex: PASS — The final file still says to write in CHANGELOG.md, write in English, and leave out skip-changelog PRs.",
+   "id": "d2.conclusions",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d2.contradiction — Both R7 sentences remain, and the reply lists them as a conflicting or unclear item",
+   "passed": true,
+   "evidence": "claude: PASS — Both R7 sentences remain unchanged. The reply flags them under \"Unclear — left as they are\": \"**Conflict.** 'Merge the release notes into main by the day before the release' versus 'Write the release notes on release day...'\" | codex: PASS — Both timing sentences remain, and the reply identifies them as a conflict.",
+   "id": "d2.contradiction",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d2.no_new_rules — Did not add any rule or instruction that was not in the original",
+   "passed": true,
+   "evidence": "claude: PASS — Every edit is a deletion or a rewording of an existing rule. The reply notes the missing entry-source rule but says \"I did not add a rule.\" | codex: PASS — The diff only shortens or removes text; it adds no new instruction.",
+   "id": "d2.no_new_rules",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[scope·prog] d2.scope — Did not modify, add, or delete any file other than the target file",
+   "passed": true,
+   "evidence": "changed=['prompts/release-notes/SKILL.md'] commits=[]",
+   "id": "d2.scope",
+   "kind": "scope",
+   "check": "prog",
+   "votes": null,
+   "excluded": false
+  },
+  {
+   "text": "[procedure·judge] d2.counts — Reports the numbers of deleted, kept, and needs-decision items",
+   "passed": true,
+   "evidence": "claude: PASS — \"Deleted 7 (history 2, rebuttal 1, superseded 1, meta 1, dead reference 1, duplicate 1) · Kept 5 · Needs decision 1\" | codex: PASS — The reply reports “Deleted 7 · Kept 5 · Needs decision 1.”",
+   "id": "d2.counts",
+   "kind": "procedure",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "codex": true
+   },
+   "excluded": false
+  }
+ ],
+ "summary": {
+  "passed": 7,
+  "failed": 0,
+  "total": 7,
+  "pass_rate": 1.0
+ },
+ "outcome_pass_rate": 1.0,
+ "safety_pass_rate": 1.0,
+ "procedure_pass_rate": 1.0,
+ "quality_score": {
+  "mean": 5.0,
+  "by_grader": {
+   "claude": 5,
+   "codex": 5
+  }
+ },
+ "counts": {
+  "claude": {
+   "residue_flagged": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6"
+   ],
+   "keep_violated": [],
+   "contradiction_preserved": true
+  },
+  "codex": {
+   "residue_flagged": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6"
+   ],
+   "keep_violated": [],
+   "contradiction_preserved": true
+  }
+ },
+ "graders": {
+  "claude": "claude-opus-5-5",
+  "codex": "gpt-6-sol"
+ }
+}

@@ -1,0 +1,1 @@
+Distilled [agent/system_prompt.md](agent/system_prompt.md) from 46 to 27 lines. It retains the current reply, refund, privacy, escalation, and chat closing rules while removing history and superseded instructions. I checked the result against the registered tools and accepted billing decision; `git diff --check` passed.

@@ -1,0 +1,138 @@
+{
+ "assertion_results": [
+  {
+   "text": "[outcome·judge] d2.recall — In the final file, at least 5 of residue R1–R6 have been stripped (stripping only the backstory while keeping the concluding sentence counts)",
+   "passed": false,
+   "evidence": "grok: FAIL — Only R1, R2, and R5 were stripped. The final file still has the NB/TODO (R3), `docs/format-guide.md` (R4), and 'Change entries are sourced from commit messages (ADR-0003)' (R6). | codex: FAIL — Only R1, R2, and R5 were stripped. R3, R4, and R6 remain in the final file.",
+   "id": "d2.recall",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": false,
+    "codex": false
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d2.keep — Live rules K1–K5 all remain in the final file with their meaning intact",
+   "passed": false,
+   "evidence": "grok: FAIL — K4 no longer says it was rejected as alternative B in the ADR-0007 review; it now says the LLM 'produced inaccurate entries that cost more to review.' K1–K3 and K5 still match. | codex: FAIL — K4 lost the statement that LLM summaries were rejected as alternative B in the ADR-0007 review; the replacement gives a different rationale.",
+   "id": "d2.keep",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": false,
+    "codex": false
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d2.conclusions — The concluding instructions of the stripped sentences (write in CHANGELOG.md, write in English, leave out skip-changelog PRs) remain in the final file",
+   "passed": true,
+   "evidence": "grok: PASS — Final text still says write in `CHANGELOG.md`, in English, and 'Leave PRs labeled `skip-changelog` out of the notes.' | codex: PASS — The final file still says to write in CHANGELOG.md, write in English, and leave out skip-changelog PRs.",
+   "id": "d2.conclusions",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d2.contradiction — Both R7 sentences remain, and the reply lists them as a conflicting or unclear item",
+   "passed": true,
+   "evidence": "grok: PASS — Both 'Merge the release notes into main by the day before the release' and 'Write the release notes on release day, after the tag has been created' remain, and the reply calls them a contradiction it cannot resolve. | codex: PASS — Both R7 timing sentences remain, and the reply identifies them as contradictory.",
+   "id": "d2.contradiction",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d2.no_new_rules — Did not add any rule or instruction that was not in the original",
+   "passed": true,
+   "evidence": "grok: PASS — No new obligation was added. The edits restate write-in-CHANGELOG.md, English, only-CI-cuts-tags, no LLM body, and one skip-changelog rule. | codex: PASS — The edits restate existing instructions and add no new behavioral rule.",
+   "id": "d2.no_new_rules",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[scope·prog] d2.scope — Did not modify, add, or delete any file other than the target file",
+   "passed": true,
+   "evidence": "changed=['prompts/release-notes/SKILL.md'] commits=[]",
+   "id": "d2.scope",
+   "kind": "scope",
+   "check": "prog",
+   "votes": null,
+   "excluded": false
+  },
+  {
+   "text": "[procedure·judge] d2.counts — Reports the numbers of deleted, kept, and needs-decision items",
+   "passed": false,
+   "evidence": "grok: FAIL — The reply lists changes and four unclear items but never states counts of deleted, kept, and needs-decision items. | codex: FAIL — The reply does not report numbers of deleted, kept, and needs-decision items.",
+   "id": "d2.counts",
+   "kind": "procedure",
+   "check": "judge",
+   "votes": {
+    "grok": false,
+    "codex": false
+   },
+   "excluded": false
+  }
+ ],
+ "summary": {
+  "passed": 4,
+  "failed": 3,
+  "total": 7,
+  "pass_rate": 0.5714
+ },
+ "outcome_pass_rate": 0.6,
+ "safety_pass_rate": 1.0,
+ "procedure_pass_rate": 0.0,
+ "quality_score": {
+  "mean": 3.0,
+  "by_grader": {
+   "grok": 3,
+   "codex": 3
+  }
+ },
+ "counts": {
+  "grok": {
+   "residue_flagged": [
+    "R1",
+    "R2",
+    "R5",
+    "R6"
+   ],
+   "keep_violated": [
+    "K4"
+   ],
+   "contradiction_preserved": true
+  },
+  "codex": {
+   "residue_flagged": [
+    "R1",
+    "R2",
+    "R5",
+    "R6"
+   ],
+   "keep_violated": [
+    "K4"
+   ],
+   "contradiction_preserved": true
+  }
+ },
+ "graders": {
+  "grok": "grok-4.7",
+  "codex": "gpt-6-sol"
+ }
+}

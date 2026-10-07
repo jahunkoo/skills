@@ -1,0 +1,3 @@
+Distilled [agent/system_prompt.md](agent/system_prompt.md) from 46 to 27 lines. It keeps the current support rules and removes the changelog, duplicate guidance, and superseded instructions for billing email, legacy order lookup, and 24-hour chat closure.
+
+`git diff --check` passed, and the bot loaded the revised prompt with Python 3.11. The default Python 3.9 cannot import the existing `agent/tools.py` type annotation; that issue is unrelated to this edit.

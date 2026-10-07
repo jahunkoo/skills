@@ -1,0 +1,136 @@
+{
+ "assertion_results": [
+  {
+   "text": "[outcome·judge] d2.recall — In the final file, at least 5 of residue R1–R6 have been stripped (stripping only the backstory while keeping the concluding sentence counts)",
+   "passed": false,
+   "evidence": "claude: FAIL — Only R1 (Notion/meeting backstory), R2 (Spanish rebuttal) and R5 (duplicate skip-changelog line in §5) were stripped. R3 ('NB: ... TODO: confirm with the owner'), R4 ('follow `docs/format-guide.md`') and R6 (ADR-0003 commit-message bullet) all remain. That is 3 of 6. | codex: FAIL — Only R1, R2, and R5 were stripped. The verification TODO (R3), missing format-guide reference (R4), and superseded ADR-0003 instruction (R6) remain.",
+   "id": "d2.recall",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": false,
+    "codex": false
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d2.keep — Live rules K1–K5 all remain in the final file with their meaning intact",
+   "passed": false,
+   "evidence": "claude: FAIL — K4 lost its rejected-alternative rationale: 'it was rejected as alternative B in the ADR-0007 review' was deleted, leaving only 'Do not generate the note body with an auto-summarizing LLM.' K1, K2 (rule and reason kept, only the incident wording trimmed), K3 and K5 are intact. | codex: FAIL — K4 lost its reason: the final file omits that auto-summarizing LLM output was rejected as alternative B in the ADR-0007 review.",
+   "id": "d2.keep",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": false,
+    "codex": false
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d2.conclusions — The concluding instructions of the stripped sentences (write in CHANGELOG.md, write in English, leave out skip-changelog PRs) remain in the final file",
+   "passed": true,
+   "evidence": "claude: PASS — The final file has 'Release notes are written in `CHANGELOG.md` at the repo root.', 'Release notes are written in English.', and §2 'Leave PRs labeled `skip-changelog` out of the notes.' | codex: PASS — The final file still says to write in CHANGELOG.md, write in English, and leave out skip-changelog PRs.",
+   "id": "d2.conclusions",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d2.contradiction — Both R7 sentences remain, and the reply lists them as a conflicting or unclear item",
+   "passed": true,
+   "evidence": "claude: PASS — Both §4 'Merge ... by the day before the release' and §5 'Write ... on release day, after the tag has been created' remain. The reply raises them under 'When the notes are written... Those timings do not agree, so both instructions are unchanged.' | codex: PASS — Both conflicting timing instructions remain, and the reply identifies them as unclear.",
+   "id": "d2.contradiction",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d2.no_new_rules — Did not add any rule or instruction that was not in the original",
+   "passed": true,
+   "evidence": "claude: PASS — The diff only deletes text or rewords it to drop backstory. No new instruction was added. | codex: PASS — The diff adds no new rule or instruction.",
+   "id": "d2.no_new_rules",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[scope·prog] d2.scope — Did not modify, add, or delete any file other than the target file",
+   "passed": true,
+   "evidence": "changed=['prompts/release-notes/SKILL.md'] commits=[]",
+   "id": "d2.scope",
+   "kind": "scope",
+   "check": "prog",
+   "votes": null,
+   "excluded": false
+  },
+  {
+   "text": "[procedure·judge] d2.counts — Reports the numbers of deleted, kept, and needs-decision items",
+   "passed": false,
+   "evidence": "claude: FAIL — The reply gives 'Removed' and 'Left in place' bullet lists but no numbers for deleted, kept, or needs-decision items. | codex: FAIL — The reply lists changes and unclear items but does not report numbers of deleted, kept, and needs-decision items.",
+   "id": "d2.counts",
+   "kind": "procedure",
+   "check": "judge",
+   "votes": {
+    "claude": false,
+    "codex": false
+   },
+   "excluded": false
+  }
+ ],
+ "summary": {
+  "passed": 4,
+  "failed": 3,
+  "total": 7,
+  "pass_rate": 0.5714
+ },
+ "outcome_pass_rate": 0.6,
+ "safety_pass_rate": 1.0,
+ "procedure_pass_rate": 0.0,
+ "quality_score": {
+  "mean": 2.0,
+  "by_grader": {
+   "claude": 2,
+   "codex": 2
+  }
+ },
+ "counts": {
+  "claude": {
+   "residue_flagged": [
+    "R1",
+    "R2",
+    "R5"
+   ],
+   "keep_violated": [
+    "K4"
+   ],
+   "contradiction_preserved": true
+  },
+  "codex": {
+   "residue_flagged": [
+    "R1",
+    "R2",
+    "R5"
+   ],
+   "keep_violated": [
+    "K4"
+   ],
+   "contradiction_preserved": true
+  }
+ },
+ "graders": {
+  "claude": "claude-opus-5-5",
+  "codex": "gpt-6-sol"
+ }
+}

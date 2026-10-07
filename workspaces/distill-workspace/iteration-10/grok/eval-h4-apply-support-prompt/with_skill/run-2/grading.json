@@ -1,0 +1,154 @@
+{
+ "assertion_results": [
+  {
+   "text": "[outcome·judge] h4.recall — In the final file, R4 (the lookup_order_legacy sentence) and R6 (the ADR-0003 email sentence) are both stripped, and at least 4 of R1, R2, R3, R5 and R8 are stripped too (stripping only the backstory or narrative while keeping the instruction counts; R5 counts when exactly one of its two sentences remains)",
+   "passed": true,
+   "evidence": "claude: PASS — The final file no longer contains the lookup_order_legacy line (R4) or the billing@northwind.example / ADR-0003 line (R6). R1, R2, R3 and R5 are also stripped: the translation backstory, the 'Earlier drafts' rebuttal, the TODO(maria) comment and the 'Do not share order or contact information…' duplicate are gone. R8 is only partly stripped: 'We spent most of 2025…' was removed, but the December re | codex: PASS — R4 and R6 are gone. R1, R2, R3, and one R5 sentence are stripped; R8 is shortened.",
+   "id": "h4.recall",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] h4.changelog — The Prompt changelog section (R9) is gone from the final file, and none of its lines was turned into a rule",
+   "passed": false,
+   "evidence": "codex: PASS — The entire Prompt changelog section is gone, with no new rule drawn from it.",
+   "id": "h4.changelog",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": null,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] h4.keep — Live rules K1–K5 all remain in the final file with their meaning intact, K1 with its analytics-vendor reason and K2 with the sentence \"Passing dollars refunds a hundredth of the amount\"",
+   "passed": false,
+   "evidence": "codex: PASS — K1–K5 remain, including the analytics-vendor reason and the sentence about passing dollars to issue_refund.",
+   "id": "h4.keep",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": null,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] h4.conclusions — The instructions behind the stripped sentences remain in the final file: reply in the language the customer writes in; apologize only when the problem is on our side; keep replies under 120 words",
+   "passed": false,
+   "evidence": "codex: PASS — The language, apology, and 120-word rules remain.",
+   "id": "h4.conclusions",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": null,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] h4.other_rules — The other instructions remain: greet the customer by first name; sign replies \"— Helpdesk\"; look up the order with lookup_order before answering; refunds above $100 go to a create_ticket refund-approval ticket; never ask for a password; one sentence forbidding sharing another customer's orders or contact details",
+   "passed": false,
+   "evidence": "codex: PASS — The greeting, signature, order lookup, refund approval, password, and customer-privacy rules remain.",
+   "id": "h4.other_rules",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": null,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] h4.contradiction — Both R7 sentences remain, and the reply lists them as a conflicting or unclear item",
+   "passed": false,
+   "evidence": "codex: PASS — Both chat-closing timers remain, and the reply identifies their conflict as needing a decision.",
+   "id": "h4.contradiction",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": null,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] h4.no_new_rules — Did not add any rule or instruction that was not in the original",
+   "passed": false,
+   "evidence": "codex: PASS — The final file adds no instruction absent from the original.",
+   "id": "h4.no_new_rules",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": null,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[scope·prog] h4.scope — Did not modify, add, or delete any file other than the target file",
+   "passed": true,
+   "evidence": "changed=['agent/system_prompt.md'] commits=[]",
+   "id": "h4.scope",
+   "kind": "scope",
+   "check": "prog",
+   "votes": null,
+   "excluded": false
+  },
+  {
+   "text": "[procedure·judge] h4.counts — Reports the numbers of deleted, kept, and needs-decision items",
+   "passed": false,
+   "evidence": "codex: PASS — The reply reports Deleted 8, Kept 17, and Needs decision 1.",
+   "id": "h4.counts",
+   "kind": "procedure",
+   "check": "judge",
+   "votes": {
+    "claude": null,
+    "codex": true
+   },
+   "excluded": false
+  }
+ ],
+ "summary": {
+  "passed": 2,
+  "failed": 7,
+  "total": 9,
+  "pass_rate": 0.2222
+ },
+ "outcome_pass_rate": 0.1429,
+ "safety_pass_rate": 1.0,
+ "procedure_pass_rate": 0.0,
+ "quality_score": {
+  "mean": 4.0,
+  "by_grader": {
+   "codex": 4
+  }
+ },
+ "counts": {
+  "claude": null,
+  "codex": {
+   "residue_flagged": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6",
+    "R8",
+    "R9"
+   ],
+   "keep_violated": [],
+   "contradiction_preserved": true
+  }
+ },
+ "graders": {
+  "claude": "claude-opus-5-5",
+  "codex": "gpt-6-sol"
+ }
+}

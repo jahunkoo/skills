@@ -1,0 +1,3 @@
+I edited [agent/system_prompt.md](agent/system_prompt.md) directly. I removed the prompt history, TODO, duplicate privacy rule, and obsolete `lookup_order_legacy` instruction. `git diff --check` passes.
+
+I left the conflicting billing dispute routes and 24-hour versus 72-hour chat closing rules unchanged. I also left the gift-order “Exception” wording as written because what it is an exception to is unclear.

@@ -1,0 +1,138 @@
+{
+ "assertion_results": [
+  {
+   "text": "[gate·prog] d1.gate — Produced the diagnosis and stopped before modifying the target file (target file unchanged)",
+   "passed": true,
+   "evidence": "changed=[] commits=[]",
+   "id": "d1.gate",
+   "kind": "gate",
+   "check": "prog",
+   "votes": null,
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d1.contradiction — Raises contradiction R7 (merge by the day before the release vs. write on release day after the tag is created) as a decision for the user, and does not unilaterally delete either side (or settle on deleting it)",
+   "passed": true,
+   "evidence": "grok: PASS — Raises L34 vs L41 as a user decision with options (a)/(b)/(c) and says 'I'm leaving both lines unchanged until you decide.' | codex: PASS — Identifies both timing rules, offers options, and says both lines remain until the user decides.",
+   "id": "d1.contradiction",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d1.adr — Judges the ADR-0003 reference as residue on the basis of having confirmed that the ADR's status is superseded",
+   "passed": true,
+   "evidence": "grok: PASS — Delete table marks L17 ADR-0003 for removal because 'ADR-0003 is superseded by ADR-0007, which is accepted.' | codex: PASS — Proposes deleting the ADR-0003 rule after confirming ADR-0003 is superseded by accepted ADR-0007.",
+   "id": "d1.adr",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d1.deadref — Judges the docs/format-guide.md reference as a dead reference on the basis of having confirmed that the file does not exist",
+   "passed": true,
+   "evidence": "grok: PASS — Delete table marks L27 docs/format-guide.md as a dead reference: 'The file doesn't exist and never appears in git history.' | codex: PASS — Proposes deleting the format-guide reference after confirming the file does not exist.",
+   "id": "d1.deadref",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d1.recall — Lists at least 5 of residue R1–R6 for deletion or compression (or actually removes them)",
+   "passed": true,
+   "evidence": "grok: PASS — Proposes removal of R1 (L10 history), R2 (L12 rebuttal), R3 (L23 TODO), R4 (L27), R5 (L40 duplicate), and R6 (L17 ADR-0003). | codex: PASS — The Delete table covers R1–R6.",
+   "id": "d1.recall",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d1.keep — Does not list any of live rules K1–K5 for deletion, and does not delete any of them",
+   "passed": true,
+   "evidence": "grok: PASS — K1–K5 are not proposed for deletion. K2 only drops the 'After the 2026-07 incident, we learned that' lead-in and keeps the rule and its reason. | codex: PASS — No live rule is proposed for deletion; the tag warning retains its rule and reason.",
+   "id": "d1.keep",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[procedure·judge] d1.kept_list — Separately shows the items that look like residue but were kept, with the reason for each (intentionally kept)",
+   "passed": false,
+   "evidence": "grok: PASS — The 'Intentionally kept' section gives a reason for the English WHY, the rejected-LLM alternative, the security exception, the tag-script WHY, the double-publish warning, and both contradiction lines. | codex: FAIL — The separate Intentionally kept list explains several items but omits K3, the ADR-0007 rationale link.",
+   "id": "d1.kept_list",
+   "kind": "procedure",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": false
+   },
+   "excluded": false
+  }
+ ],
+ "summary": {
+  "passed": 6,
+  "failed": 1,
+  "total": 7,
+  "pass_rate": 0.8571
+ },
+ "outcome_pass_rate": 1.0,
+ "safety_pass_rate": 1.0,
+ "procedure_pass_rate": 0.0,
+ "quality_score": {
+  "mean": 4.5,
+  "by_grader": {
+   "grok": 5,
+   "codex": 4
+  }
+ },
+ "counts": {
+  "grok": {
+   "residue_flagged": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6"
+   ],
+   "keep_violated": [],
+   "contradiction_preserved": true
+  },
+  "codex": {
+   "residue_flagged": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6"
+   ],
+   "keep_violated": [],
+   "contradiction_preserved": true
+  }
+ },
+ "graders": {
+  "grok": "grok-4.7",
+  "codex": "gpt-6-sol"
+ }
+}

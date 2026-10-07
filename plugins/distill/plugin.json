@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "distill",
+  "version": "1.1.0",
+  "description": "Removes outdated history from agent instructions, keeping only what the agent should do now. Reports first and edits only after you approve.",
+  "author": {
+    "name": "Jahun Koo"
+  },
+  "repository": "https://github.com/jahunkoo/skills",
+  "license": "MIT"
+}

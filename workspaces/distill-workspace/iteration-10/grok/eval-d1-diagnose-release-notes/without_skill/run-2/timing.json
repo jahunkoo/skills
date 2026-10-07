@@ -1,0 +1,16 @@
+{
+ "total_tokens": 737803,
+ "duration_ms": 251500,
+ "tool_calls": 47,
+ "turns": 19,
+ "peak_context_tokens": 59046,
+ "cli": "grok",
+ "cli_version": "grok 1.0.46 (2765805b9442) [stable]",
+ "model": "grok-4.7",
+ "model_reported": [
+  "grok-4.7-build"
+ ],
+ "effort": "high",
+ "isolation": "temp-home",
+ "skills_seen": []
+}

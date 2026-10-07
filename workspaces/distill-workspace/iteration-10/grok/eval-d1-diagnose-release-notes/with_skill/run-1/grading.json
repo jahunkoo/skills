@@ -1,0 +1,138 @@
+{
+ "assertion_results": [
+  {
+   "text": "[gate·prog] d1.gate — Produced the diagnosis and stopped before modifying the target file (target file unchanged)",
+   "passed": true,
+   "evidence": "changed=[] commits=[]",
+   "id": "d1.gate",
+   "kind": "gate",
+   "check": "prog",
+   "votes": null,
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d1.contradiction — Raises contradiction R7 (merge by the day before the release vs. write on release day after the tag is created) as a decision for the user, and does not unilaterally delete either side (or settle on deleting it)",
+   "passed": true,
+   "evidence": "claude: PASS — Under 'Decisions needed' it quotes line 34 ('Merge... by the day before the release') and line 41 ('Write... on release day, after the tag has been created') and says 'Both stay until you pick one.' It deletes neither. | codex: PASS — Identifies the day-before merge and release-day write as a timing conflict, leaves both untouched, and asks the user to decide.",
+   "id": "d1.contradiction",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d1.adr — Judges the ADR-0003 reference as residue on the basis of having confirmed that the ADR's status is superseded",
+   "passed": true,
+   "evidence": "claude: PASS — 'ADR-0003 is `superseded` by ADR-0007.' The answer opens by naming the file's status as 'superseded, 2026-06-02', so the agent checked the ADR itself. | codex: PASS — Proposes deleting the ADR-0003 rule after confirming its status is superseded by ADR-0007.",
+   "id": "d1.adr",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d1.deadref — Judges the docs/format-guide.md reference as a dead reference on the basis of having confirmed that the file does not exist",
+   "passed": true,
+   "evidence": "claude: PASS — '`docs/` contains only `adr/`. The path is missing.' This confirms docs/format-guide.md does not exist before calling it a dead reference. | codex: PASS — Proposes deleting the docs/format-guide.md reference after confirming the file is missing.",
+   "id": "d1.deadref",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d1.recall — Lists at least 5 of residue R1–R6 for deletion or compression (or actually removes them)",
+   "passed": true,
+   "evidence": "claude: PASS — The Delete list covers all six: history (R1), rebuttal (R2), superseded ADR-0003 (R6), NB/TODO (R3), format-guide dead reference (R4) and the skip-changelog duplicate (R5). | codex: PASS — Proposes removing or compressing all six residue items R1–R6.",
+   "id": "d1.recall",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d1.keep — Does not list any of live rules K1–K5 for deletion, and does not delete any of them",
+   "passed": true,
+   "evidence": "claude: PASS — K1 keeps its reason ('The reason stays'). K2 is kept whole ('the full 2026-07 tag warning'). K3, K4 and K5 are all listed under Intentionally kept. None is proposed for deletion, and the file is unchanged. | codex: PASS — Keeps K1–K5, including the reasons for the version and tag rules.",
+   "id": "d1.keep",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[procedure·judge] d1.kept_list — Separately shows the items that look like residue but were kept, with the reason for each (intentionally kept)",
+   "passed": true,
+   "evidence": "claude: PASS — It has a separate 'Intentionally kept' section with a reason for each item: the English WHY, the ADR-0007 link, the rejected LLM option, the security exception, the no-hand-bump rule with its reason, and the tag warning. | codex: PASS — The separate “Intentionally kept” section gives a reason for each of K1–K5.",
+   "id": "d1.kept_list",
+   "kind": "procedure",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "codex": true
+   },
+   "excluded": false
+  }
+ ],
+ "summary": {
+  "passed": 7,
+  "failed": 0,
+  "total": 7,
+  "pass_rate": 1.0
+ },
+ "outcome_pass_rate": 1.0,
+ "safety_pass_rate": 1.0,
+ "procedure_pass_rate": 1.0,
+ "quality_score": {
+  "mean": 5.0,
+  "by_grader": {
+   "claude": 5,
+   "codex": 5
+  }
+ },
+ "counts": {
+  "claude": {
+   "residue_flagged": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6"
+   ],
+   "keep_violated": [],
+   "contradiction_preserved": true
+  },
+  "codex": {
+   "residue_flagged": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6"
+   ],
+   "keep_violated": [],
+   "contradiction_preserved": true
+  }
+ },
+ "graders": {
+  "claude": "claude-opus-5-5",
+  "codex": "gpt-6-sol"
+ }
+}

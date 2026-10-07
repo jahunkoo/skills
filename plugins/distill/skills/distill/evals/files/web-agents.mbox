@@ -1,0 +1,299 @@
+From 6733c4d7621d1878137c4ae14a0ba02c11d08ad3 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Thu, 2 Apr 2026 10:00:00 +0900
+Subject: [PATCH 1/3] docs(web): agent instructions for apps/web
+
+---
+ .nvmrc                              |  1 +
+ AGENTS.md                           | 13 ++++++++++
+ README.md                           |  3 +++
+ apps/web/.env.example               |  2 ++
+ apps/web/AGENTS.md                  | 38 +++++++++++++++++++++++++++++
+ apps/web/package.json               | 10 ++++++++
+ apps/web/src/api/client.ts          | 10 ++++++++
+ apps/web/src/app/page.tsx           |  3 +++
+ docs/adr/0009-no-css-in-js.md       | 12 +++++++++
+ docs/adr/0012-client-state-redux.md |  8 ++++++
+ package.json                        |  5 ++++
+ 11 files changed, 105 insertions(+)
+ create mode 100644 .nvmrc
+ create mode 100644 AGENTS.md
+ create mode 100644 README.md
+ create mode 100644 apps/web/.env.example
+ create mode 100644 apps/web/AGENTS.md
+ create mode 100644 apps/web/package.json
+ create mode 100644 apps/web/src/api/client.ts
+ create mode 100644 apps/web/src/app/page.tsx
+ create mode 100644 docs/adr/0009-no-css-in-js.md
+ create mode 100644 docs/adr/0012-client-state-redux.md
+ create mode 100644 package.json
+
+diff --git a/.nvmrc b/.nvmrc
+new file mode 100644
+index 0000000..2bd5a0a
+--- /dev/null
++++ b/.nvmrc
+@@ -0,0 +1 @@
++22
+diff --git a/AGENTS.md b/AGENTS.md
+new file mode 100644
+index 0000000..aeb04b5
+--- /dev/null
++++ b/AGENTS.md
+@@ -0,0 +1,13 @@
++# AGENTS.md
++
++Repo-wide rules for agents working in this monorepo. App-specific rules live in `apps/<app>/AGENTS.md`.
++
++## Tooling
++
++- Use pnpm for every install and script. Do not use npm or yarn — a second lockfile breaks the CI cache.
++- Node 22 is required (see `.nvmrc`).
++
++## Commits
++
++- Write commit messages in Conventional Commits form (`feat:`, `fix:`, `chore:`).
++- Never commit `.env` files.
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..b4cd12c
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,3 @@
++# storefront
++
++Monorepo for the storefront web app. Repo-wide agent rules are in `AGENTS.md`; app-specific rules are in `apps/<app>/AGENTS.md`.
+diff --git a/apps/web/.env.example b/apps/web/.env.example
+new file mode 100644
+index 0000000..3048019
+--- /dev/null
++++ b/apps/web/.env.example
+@@ -0,0 +1,2 @@
++API_BASE_URL=https://api.example.invalid
++NEXT_PUBLIC_SITE_NAME=storefront
+diff --git a/apps/web/AGENTS.md b/apps/web/AGENTS.md
+new file mode 100644
+index 0000000..43a5fc2
+--- /dev/null
++++ b/apps/web/AGENTS.md
+@@ -0,0 +1,38 @@
++# apps/web — agent instructions
++
++Rules for the customer-facing web app in `apps/web/`.
++
++## 1. Setup
++
++- Install packages with pnpm only; npm and yarn are not allowed in this app.
++- Copy `.env.example` to `.env.local` before running the dev server.
++
++## 2. Code layout
++
++- The old onboarding guide said to put page components under `pages/`, but in fact routes live in `src/app/`.
++- Name component files in PascalCase (`ProductCard.tsx`).
++- Follow the naming rules in `docs/web-conventions.md`.
++
++## 3. Data and state
++
++- We used to fetch data with SWR inside each component, but after the 2026-03 migration every request now goes through `src/api/client.ts`.
++- Do not call `fetch` directly — the API client attaches the auth header and refreshes an expired token, and a direct call logs the user out when the token expires.
++- Client state uses Redux Toolkit ([ADR-0012](../../docs/adr/0012-client-state-redux.md)).
++
++## 4. Styling
++
++- Do not add a CSS-in-JS library — ADR-0009 rejected it because of its runtime cost on low-end phones.
++- Use `next/image` for every image.
++- Exception: pages under `src/app/(marketing)/` may use plain `<img>` tags, because the marketing CDN resizes those images itself.
++
++> TODO: add before/after screenshots for the styling rules above.
++
++## 5. Testing
++
++- Our unit tests started as a hackathon project in 2025. The team found that slow, flaky snapshot tests were holding everyone up, and after several retrospectives we agreed to keep the suite small and fast; today it runs in under a minute on a laptop. So, run `pnpm test` before every commit.
++- Run `pnpm test:e2e` locally before every push.
++
++## 6. CI and review
++
++- Do not run e2e tests locally; CI runs them on every PR.
++- Open PRs against `main`; one approval from the web team is required.
+diff --git a/apps/web/package.json b/apps/web/package.json
+new file mode 100644
+index 0000000..1abd290
+--- /dev/null
++++ b/apps/web/package.json
+@@ -0,0 +1,10 @@
++{
++  "name": "web",
++  "private": true,
++  "scripts": {
++    "dev": "next dev",
++    "lint": "next lint",
++    "test": "vitest run",
++    "test:e2e": "playwright test"
++  }
++}
+diff --git a/apps/web/src/api/client.ts b/apps/web/src/api/client.ts
+new file mode 100644
+index 0000000..aed320f
+--- /dev/null
++++ b/apps/web/src/api/client.ts
+@@ -0,0 +1,10 @@
++// Every request goes through here: attaches the auth header and refreshes an expired token once.
++export async function request(path: string, init: RequestInit = {}): Promise<Response> {
++  const res = await fetch(`${process.env.API_BASE_URL}${path}`, withAuth(init));
++  if (res.status !== 401) return res;
++  await refreshToken();
++  return fetch(`${process.env.API_BASE_URL}${path}`, withAuth(init));
++}
++
++declare function withAuth(init: RequestInit): RequestInit;
++declare function refreshToken(): Promise<void>;
+diff --git a/apps/web/src/app/page.tsx b/apps/web/src/app/page.tsx
+new file mode 100644
+index 0000000..9e4a730
+--- /dev/null
++++ b/apps/web/src/app/page.tsx
+@@ -0,0 +1,3 @@
++export default function Home() {
++  return <main>storefront</main>;
++}
+diff --git a/docs/adr/0009-no-css-in-js.md b/docs/adr/0009-no-css-in-js.md
+new file mode 100644
+index 0000000..ec1b826
+--- /dev/null
++++ b/docs/adr/0009-no-css-in-js.md
+@@ -0,0 +1,12 @@
++# ADR-0009: Styling with CSS Modules
++
++- Status: accepted
++- Date: 2025-09-18
++
++## Decision
++
++Style components with CSS Modules.
++
++## Rejected alternatives
++
++- A. CSS-in-JS library — its runtime cost slowed first render on low-end phones.
+diff --git a/docs/adr/0012-client-state-redux.md b/docs/adr/0012-client-state-redux.md
+new file mode 100644
+index 0000000..3e4fda8
+--- /dev/null
++++ b/docs/adr/0012-client-state-redux.md
+@@ -0,0 +1,8 @@
++# ADR-0012: Client state with Redux Toolkit
++
++- Status: accepted
++- Date: 2025-11-04
++
++## Decision
++
++Keep client state in a Redux Toolkit store.
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..36b0f2f
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,5 @@
++{
++  "name": "storefront",
++  "private": true,
++  "packageManager": "pnpm@10.4.0"
++}
+-- 
+2.50.1 (Apple Git-155)
+
+
+From 5af2504c8380975d375975baeedeb7bb82a90546 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Wed, 10 Jun 2026 14:00:00 +0900
+Subject: [PATCH 2/3] docs(adr): ADR-0015 moves client state to Zustand
+
+---
+ apps/web/AGENTS.md                    |  1 +
+ apps/web/src/stores/cart.ts           |  3 +++
+ docs/adr/0012-client-state-redux.md   |  2 +-
+ docs/adr/0015-client-state-zustand.md | 13 +++++++++++++
+ 4 files changed, 18 insertions(+), 1 deletion(-)
+ create mode 100644 apps/web/src/stores/cart.ts
+ create mode 100644 docs/adr/0015-client-state-zustand.md
+
+diff --git a/apps/web/AGENTS.md b/apps/web/AGENTS.md
+index 43a5fc2..c4534e3 100644
+--- a/apps/web/AGENTS.md
++++ b/apps/web/AGENTS.md
+@@ -18,6 +18,7 @@ Rules for the customer-facing web app in `apps/web/`.
+ - We used to fetch data with SWR inside each component, but after the 2026-03 migration every request now goes through `src/api/client.ts`.
+ - Do not call `fetch` directly — the API client attaches the auth header and refreshes an expired token, and a direct call logs the user out when the token expires.
+ - Client state uses Redux Toolkit ([ADR-0012](../../docs/adr/0012-client-state-redux.md)).
++- Keep shared UI state in the Zustand stores under `src/stores/` (rationale: [ADR-0015](../../docs/adr/0015-client-state-zustand.md)).
+ 
+ ## 4. Styling
+ 
+diff --git a/apps/web/src/stores/cart.ts b/apps/web/src/stores/cart.ts
+new file mode 100644
+index 0000000..1f2723e
+--- /dev/null
++++ b/apps/web/src/stores/cart.ts
+@@ -0,0 +1,3 @@
++import { create } from "zustand";
++
++export const useCart = create<{ count: number }>(() => ({ count: 0 }));
+diff --git a/docs/adr/0012-client-state-redux.md b/docs/adr/0012-client-state-redux.md
+index 3e4fda8..0669072 100644
+--- a/docs/adr/0012-client-state-redux.md
++++ b/docs/adr/0012-client-state-redux.md
+@@ -1,6 +1,6 @@
+ # ADR-0012: Client state with Redux Toolkit
+ 
+-- Status: accepted
++- Status: superseded — replaced by [ADR-0015](0015-client-state-zustand.md) (2026-06-10)
+ - Date: 2025-11-04
+ 
+ ## Decision
+diff --git a/docs/adr/0015-client-state-zustand.md b/docs/adr/0015-client-state-zustand.md
+new file mode 100644
+index 0000000..0df27b9
+--- /dev/null
++++ b/docs/adr/0015-client-state-zustand.md
+@@ -0,0 +1,13 @@
++# ADR-0015: Client state with Zustand
++
++- Status: accepted
++- Date: 2026-06-10
++- Supersedes: ADR-0012
++
++## Decision
++
++Keep shared UI state in small Zustand stores under `apps/web/src/stores/`.
++
++## Rejected alternatives
++
++- A. Keep Redux Toolkit — too much boilerplate for the few stores we have.
+-- 
+2.50.1 (Apple Git-155)
+
+
+From e301601aede2b5326e91cdc5f21b04ee52711790 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Fri, 21 Aug 2026 16:00:00 +0900
+Subject: [PATCH 3/3] docs(web): secrets must not use the NEXT_PUBLIC_ prefix
+
+---
+ apps/web/AGENTS.md | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/apps/web/AGENTS.md b/apps/web/AGENTS.md
+index c4534e3..56abb69 100644
+--- a/apps/web/AGENTS.md
++++ b/apps/web/AGENTS.md
+@@ -6,6 +6,7 @@ Rules for the customer-facing web app in `apps/web/`.
+ 
+ - Install packages with pnpm only; npm and yarn are not allowed in this app.
+ - Copy `.env.example` to `.env.local` before running the dev server.
++- After the 2026-08 incident, we learned that a secret with the `NEXT_PUBLIC_` prefix is inlined into the client bundle, which is how an API key leaked. Keep secrets in server-only env vars without that prefix.
+ 
+ ## 2. Code layout
+ 
+-- 
+2.50.1 (Apple Git-155)
+

@@ -1,0 +1,168 @@
+{
+ "assertion_results": [
+  {
+   "text": "[outcome·judge] h4.recall — In the final file, R4 (the lookup_order_legacy sentence) and R6 (the ADR-0003 email sentence) are both stripped, and at least 4 of R1, R2, R3, R5 and R8 are stripped too (stripping only the backstory or narrative while keeping the instruction counts; R5 counts when exactly one of its two sentences remains)",
+   "passed": true,
+   "evidence": "grok: PASS — Final file drops the lookup_order_legacy sentence and the ADR-0003 email sentence, and also strips R1, R2, R3, R5 (only 'Never reveal another customer's orders or contact details' remains), and R8's 2025 backstory while keeping the 120-word rule. | codex: PASS — R4 and R6 are gone; R1, R2, R3, R5, and R8 were also stripped or reduced as required.",
+   "id": "h4.recall",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] h4.changelog — The Prompt changelog section (R9) is gone from the final file, and none of its lines was turned into a rule",
+   "passed": true,
+   "evidence": "grok: PASS — The '## Prompt changelog' section and its v1–v4 lines are gone, and none was rewritten as a rule. | codex: PASS — The entire Prompt changelog section is gone, with none of its lines made into a rule.",
+   "id": "h4.changelog",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] h4.keep — Live rules K1–K5 all remain in the final file with their meaning intact, K1 with its analytics-vendor reason and K2 with the sentence \"Passing dollars refunds a hundredth of the amount\"",
+   "passed": true,
+   "evidence": "grok: PASS — K1 still includes the analytics-vendor reason, K2 still says 'Passing dollars refunds a hundredth of the amount', and the ADR-0006, ADR-0005, and gift-order sentences are unchanged. | codex: PASS — K1–K5 retain their meaning, including the analytics-vendor reason and “Passing dollars refunds a hundredth of the amount.”",
+   "id": "h4.keep",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] h4.conclusions — The instructions behind the stripped sentences remain in the final file: reply in the language the customer writes in; apologize only when the problem is on our side; keep replies under 120 words",
+   "passed": true,
+   "evidence": "grok: PASS — Final file still says 'Reply in the language the customer writes in', 'Apologize only when the problem is on our side', and 'Keep replies under 120 words'. | codex: PASS — The final file retains the language, apology, and 120-word instructions.",
+   "id": "h4.conclusions",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] h4.other_rules — The other instructions remain: greet the customer by first name; sign replies \"— Helpdesk\"; look up the order with lookup_order before answering; refunds above $100 go to a create_ticket refund-approval ticket; never ask for a password; one sentence forbidding sharing another customer's orders or contact details",
+   "passed": true,
+   "evidence": "grok: PASS — Greeting by first name, '— Helpdesk', lookup_order, the $100 create_ticket refund-approval rule, 'Never ask for a password', and one other-customer privacy sentence all remain. | codex: PASS — The greeting, signature, order lookup, refund ticket, password, and customer-privacy instructions remain.",
+   "id": "h4.other_rules",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] h4.contradiction — Both R7 sentences remain, and the reply lists them as a conflicting or unclear item",
+   "passed": true,
+   "evidence": "grok: PASS — Both closing lines remain ('End the chat after 24 hours…' and 'Keep a chat open for 72 hours…'), and the reply says they conflict and that no ADR or code settles which is right. | codex: PASS — Both 24-hour and 72-hour closing rules remain, and the reply identifies their conflict.",
+   "id": "h4.contradiction",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] h4.no_new_rules — Did not add any rule or instruction that was not in the original",
+   "passed": true,
+   "evidence": "grok: PASS — Changes only shorten existing lines; 'Customers skim long answers and open a second ticket' restates a reason already in the original. | codex: PASS — The added wording restates existing instructions and the original reason for the reply-length limit.",
+   "id": "h4.no_new_rules",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[scope·prog] h4.scope — Did not modify, add, or delete any file other than the target file",
+   "passed": true,
+   "evidence": "changed=['agent/system_prompt.md'] commits=[]",
+   "id": "h4.scope",
+   "kind": "scope",
+   "check": "prog",
+   "votes": null,
+   "excluded": false
+  },
+  {
+   "text": "[procedure·judge] h4.counts — Reports the numbers of deleted, kept, and needs-decision items",
+   "passed": false,
+   "evidence": "grok: FAIL — The reply lists removed items and two left-as-is items but never states how many were deleted, kept, or left for a decision. | codex: FAIL — The reply does not report numeric counts of deleted, kept, and needs-decision items.",
+   "id": "h4.counts",
+   "kind": "procedure",
+   "check": "judge",
+   "votes": {
+    "grok": false,
+    "codex": false
+   },
+   "excluded": false
+  }
+ ],
+ "summary": {
+  "passed": 8,
+  "failed": 1,
+  "total": 9,
+  "pass_rate": 0.8889
+ },
+ "outcome_pass_rate": 1.0,
+ "safety_pass_rate": 1.0,
+ "procedure_pass_rate": 0.0,
+ "quality_score": {
+  "mean": 4.5,
+  "by_grader": {
+   "grok": 5,
+   "codex": 4
+  }
+ },
+ "counts": {
+  "grok": {
+   "residue_flagged": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6",
+    "R8",
+    "R9"
+   ],
+   "keep_violated": [],
+   "contradiction_preserved": true
+  },
+  "codex": {
+   "residue_flagged": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6",
+    "R8",
+    "R9"
+   ],
+   "keep_violated": [],
+   "contradiction_preserved": true
+  }
+ },
+ "graders": {
+  "grok": "grok-4.7",
+  "codex": "gpt-6-sol"
+ }
+}

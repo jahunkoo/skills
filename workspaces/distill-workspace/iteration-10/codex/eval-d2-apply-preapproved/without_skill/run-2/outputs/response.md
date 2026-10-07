@@ -1,0 +1,3 @@
+Cleaned up [prompts/release-notes/SKILL.md](prompts/release-notes/SKILL.md): removed dated background, redundant wording, and a duplicate `skip-changelog` instruction. `git diff --check` passes.
+
+I left the unclear instructions in place: the cited ADRs disagree on whether entries come from commit messages or PR titles; the file says both to merge notes before release day and to write them on release day; classification still has an owner-confirmation TODO; and the referenced `docs/format-guide.md` is absent.

@@ -1,0 +1,452 @@
+[
+ {
+  "iteration": "iteration-1",
+  "kind": "dev",
+  "date_utc": "2026-09-24",
+  "skill_sha256": "a1ec5a5a96a932b2174a60c4b6a89c2ccd614a0244ef812189cdcf0af4643791",
+  "sets": [
+   "dev"
+  ],
+  "evals": [
+   "d1-diagnose-release-notes",
+   "d2-apply-preapproved"
+  ],
+  "agents": {
+   "claude": {
+    "cli": "Claude Code",
+    "model": "claude-opus-5-5",
+    "effort": "not recorded"
+   },
+   "grok": {
+    "cli": "Grok CLI",
+    "model": "not recorded",
+    "effort": "not recorded"
+   }
+  },
+  "runs": "16/16",
+  "outcome": {
+   "with_skill": 0.975,
+   "without_skill": 0.575,
+   "difference": 0.4,
+   "ci95": null,
+   "p": null
+  },
+  "criteria_met": {
+   "claude": true,
+   "grok": true
+  },
+  "publish": null,
+  "note": "Korean edition with the earlier harness; one-sided permutation p = 0.014 per agent, no pooled test; both agents graded by the same claude + grok pair; outcome pooled over assertions",
+  "raw_data": "private"
+ },
+ {
+  "iteration": "iteration-2",
+  "kind": "dev",
+  "date_utc": "2026-09-30",
+  "skill_sha256": "30d38e10a5f6ea89103cb529e0cf968fb251895d91f5e242d9bd04bd96a77241",
+  "sets": [
+   "dev"
+  ],
+  "evals": [
+   "d1-diagnose-release-notes",
+   "d2-apply-preapproved"
+  ],
+  "agents": {
+   "claude": {
+    "cli": "Claude Code",
+    "model": "claude-opus-5-5",
+    "effort": "high"
+   },
+   "codex": {
+    "cli": "Codex CLI",
+    "model": "gpt-6-sol",
+    "effort": "high"
+   },
+   "grok": {
+    "cli": "Grok CLI",
+    "model": "grok-4.7",
+    "effort": "xhigh"
+   }
+  },
+  "runs": "24/24",
+  "outcome": {
+   "with_skill": 0.9333,
+   "without_skill": 0.6,
+   "difference": 0.3333,
+   "ci95": [
+    0.3,
+    0.3667
+   ],
+   "p": 8.746355685131195e-06
+  },
+  "criteria_met": {
+   "claude": true,
+   "codex": true,
+   "grok": true
+  },
+  "publish": null,
+  "note": null,
+  "raw_data": "private"
+ },
+ {
+  "iteration": "iteration-3",
+  "kind": "dev",
+  "date_utc": "2026-09-30",
+  "skill_sha256": "12e672e1bba5d0970c8a755e1bd0905202b6fb6a9a52631412bdc169a429ddc9",
+  "sets": [
+   "dev"
+  ],
+  "evals": [
+   "d1-diagnose-release-notes",
+   "d2-apply-preapproved"
+  ],
+  "agents": {
+   "claude": {
+    "cli": "Claude Code",
+    "model": "claude-opus-5-5",
+    "effort": "high"
+   },
+   "codex": {
+    "cli": "Codex CLI",
+    "model": "gpt-6-sol",
+    "effort": "high"
+   },
+   "grok": {
+    "cli": "Grok CLI",
+    "model": "grok-4.7",
+    "effort": "xhigh"
+   }
+  },
+  "runs": "24/24",
+  "outcome": {
+   "with_skill": 0.9667,
+   "without_skill": 0.6333,
+   "difference": 0.3333,
+   "ci95": [
+    0.2667,
+    0.4167
+   ],
+   "p": 4.956268221574344e-05
+  },
+  "criteria_met": {
+   "claude": true,
+   "codex": true,
+   "grok": true
+  },
+  "publish": null,
+  "note": null,
+  "raw_data": "private"
+ },
+ {
+  "iteration": "iteration-4",
+  "kind": "dev",
+  "date_utc": "2026-09-30",
+  "skill_sha256": "d4e3104c039f0c954b6c8351a1e5fb7d209392916147836081deec213ee8ffc4",
+  "sets": [
+   "dev"
+  ],
+  "evals": [
+   "d1-diagnose-release-notes",
+   "d2-apply-preapproved"
+  ],
+  "agents": {
+   "claude": {
+    "cli": "Claude Code",
+    "model": "claude-opus-5-5",
+    "effort": "high"
+   },
+   "codex": {
+    "cli": "Codex CLI",
+    "model": "gpt-6-sol",
+    "effort": "high"
+   },
+   "grok": {
+    "cli": "Grok CLI",
+    "model": "grok-4.7",
+    "effort": "xhigh"
+   }
+  },
+  "runs": "24/24",
+  "outcome": {
+   "with_skill": 0.9833,
+   "without_skill": 0.6667,
+   "difference": 0.3167,
+   "ci95": [
+    0.25,
+    0.3833
+   ],
+   "p": 1.457725947521866e-05
+  },
+  "criteria_met": {
+   "claude": true,
+   "codex": true,
+   "grok": true
+  },
+  "publish": null,
+  "note": null,
+  "raw_data": "private"
+ },
+ {
+  "iteration": "iteration-5",
+  "kind": "dev",
+  "date_utc": "2026-09-30",
+  "skill_sha256": "d4e3104c039f0c954b6c8351a1e5fb7d209392916147836081deec213ee8ffc4",
+  "sets": [
+   "dev"
+  ],
+  "evals": [
+   "d2-apply-preapproved"
+  ],
+  "agents": {
+   "codex": {
+    "cli": "Codex CLI",
+    "model": "gpt-6-sol",
+    "effort": "high"
+   }
+  },
+  "runs": "12/12",
+  "outcome": {
+   "with_skill": 1.0,
+   "without_skill": 0.5667,
+   "difference": 0.4333,
+   "ci95": [
+    0.4,
+    0.5
+   ],
+   "p": 0.0010822510822510823
+  },
+  "criteria_met": {
+   "codex": true
+  },
+  "publish": null,
+  "note": "targeted re-run of iteration-4: Codex CLI and the apply eval only, 6 runs per configuration",
+  "raw_data": "private"
+ },
+ {
+  "iteration": "iteration-6",
+  "kind": "confirm",
+  "date_utc": "2026-09-30",
+  "skill_sha256": "d4e3104c039f0c954b6c8351a1e5fb7d209392916147836081deec213ee8ffc4",
+  "sets": [
+   "dev",
+   "holdout"
+  ],
+  "evals": [
+   "d1-diagnose-release-notes",
+   "d2-apply-preapproved",
+   "h1-diagnose-web-agents",
+   "h2-apply-web-agents"
+  ],
+  "agents": {
+   "claude": {
+    "cli": "Claude Code",
+    "model": "claude-opus-5-5",
+    "effort": "high"
+   },
+   "codex": {
+    "cli": "Codex CLI",
+    "model": "gpt-6-sol",
+    "effort": "high"
+   },
+   "grok": {
+    "cli": "Grok CLI",
+    "model": "grok-4.7",
+    "effort": "high"
+   }
+  },
+  "runs": "48/48",
+  "outcome": {
+   "with_skill": 0.9397,
+   "without_skill": 0.651,
+   "difference": 0.2887,
+   "ci95": [
+    0.2577,
+    0.3206
+   ],
+   "p": 1.4072965208853408e-12
+  },
+  "criteria_met": {
+   "claude": true,
+   "codex": true,
+   "grok": true
+  },
+  "publish": true,
+  "note": null,
+  "raw_data": "private"
+ },
+ {
+  "iteration": "iteration-7",
+  "kind": "dev",
+  "date_utc": "2026-10-01",
+  "skill_sha256": "38600f673315e80b0888fbb979904fe161aa278892756782a12f3eb766cf1d6b",
+  "sets": [
+   "dev",
+   "holdout"
+  ],
+  "evals": [
+   "d1-diagnose-release-notes",
+   "d2-apply-preapproved",
+   "h1-diagnose-web-agents",
+   "h2-apply-web-agents"
+  ],
+  "agents": {
+   "claude": {
+    "cli": "Claude Code",
+    "model": "claude-opus-5-5",
+    "effort": "high"
+   },
+   "codex": {
+    "cli": "Codex CLI",
+    "model": "gpt-6-sol",
+    "effort": "high"
+   },
+   "grok": {
+    "cli": "Grok CLI",
+    "model": "grok-4.7",
+    "effort": "high"
+   }
+  },
+  "runs": "48/48",
+  "outcome": {
+   "with_skill": 0.9635,
+   "without_skill": 0.6405,
+   "difference": 0.323,
+   "ci95": [
+    0.2784,
+    0.3673
+   ],
+   "p": 4.221889562656022e-12
+  },
+  "criteria_met": {
+   "claude": true,
+   "codex": true,
+   "grok": true
+  },
+  "publish": null,
+  "note": "1.1.0 candidate on all four evals; h1 and h2 are development evals from 1.1.0 on",
+  "raw_data": "private"
+ },
+ {
+  "iteration": "iteration-8",
+  "kind": "dev",
+  "date_utc": "2026-10-01",
+  "skill_sha256": "a5ecd0c50a19e203fcf4cb7f5e04836294b191e12ad0bc2f199e5f79b09806f8",
+  "sets": [
+   "dev",
+   "holdout"
+  ],
+  "evals": [
+   "d1-diagnose-release-notes",
+   "d2-apply-preapproved",
+   "h1-diagnose-web-agents",
+   "h2-apply-web-agents"
+  ],
+  "agents": {
+   "claude": {
+    "cli": "Claude Code",
+    "model": "claude-opus-5-5",
+    "effort": "high"
+   },
+   "codex": {
+    "cli": "Codex CLI",
+    "model": "gpt-6-sol",
+    "effort": "high"
+   },
+   "grok": {
+    "cli": "Grok CLI",
+    "model": "grok-4.7",
+    "effort": "high"
+   }
+  },
+  "runs": "48/48",
+  "outcome": {
+   "with_skill": 1.0,
+   "without_skill": 0.6121,
+   "difference": 0.3879,
+   "ci95": [
+    0.3583,
+    0.4175
+   ],
+   "p": 4.690988402951136e-13
+  },
+  "criteria_met": {
+   "claude": true,
+   "codex": true,
+   "grok": true
+  },
+  "publish": null,
+  "note": "1.1.0 candidate, second edit: approval gate restored; all four evals are development evals",
+  "raw_data": "private"
+ },
+ {
+  "iteration": "iteration-9",
+  "kind": "confirm",
+  "date_utc": "2026-10-01",
+  "skill_sha256": "a5ecd0c50a19e203fcf4cb7f5e04836294b191e12ad0bc2f199e5f79b09806f8",
+  "sets": [
+   "dev",
+   "dev-web",
+   "holdout"
+  ],
+  "evals": [],
+  "agents": {},
+  "runs": "3/72",
+  "outcome": null,
+  "criteria_met": {},
+  "publish": null,
+  "note": "stopped at the user's request after 3 of 72 runs, before any check or grade and without reading any output; the rule was cut to 48 runs and the confirmation restarted as iteration-10",
+  "raw_data": "none"
+ },
+ {
+  "iteration": "iteration-10",
+  "kind": "confirm",
+  "date_utc": "2026-10-01",
+  "skill_sha256": "a5ecd0c50a19e203fcf4cb7f5e04836294b191e12ad0bc2f199e5f79b09806f8",
+  "sets": [
+   "dev",
+   "holdout"
+  ],
+  "evals": [
+   "d1-diagnose-release-notes",
+   "d2-apply-preapproved",
+   "h3-diagnose-support-prompt",
+   "h4-apply-support-prompt"
+  ],
+  "agents": {
+   "claude": {
+    "cli": "Claude Code",
+    "model": "claude-opus-5-5",
+    "effort": "high"
+   },
+   "codex": {
+    "cli": "Codex CLI",
+    "model": "gpt-6-sol",
+    "effort": "high"
+   },
+   "grok": {
+    "cli": "Grok CLI",
+    "model": "grok-4.7",
+    "effort": "high"
+   }
+  },
+  "runs": "48/48",
+  "outcome": {
+   "with_skill": 0.9643,
+   "without_skill": 0.6643,
+   "difference": 0.3,
+   "ci95": [
+    0.2315,
+    0.3711
+   ],
+   "p": 8.525460022680751e-06
+  },
+  "criteria_met": {
+   "claude": true,
+   "codex": true,
+   "grok": true
+  },
+  "publish": true,
+  "note": "1.1.0 confirmation run under the amended rule (d1, d2, h3, h4)",
+  "raw_data": "public"
+ }
+]

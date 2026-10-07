@@ -1,0 +1,168 @@
+{
+ "assertion_results": [
+  {
+   "text": "[outcome·judge] h4.recall — In the final file, R4 (the lookup_order_legacy sentence) and R6 (the ADR-0003 email sentence) are both stripped, and at least 4 of R1, R2, R3, R5 and R8 are stripped too (stripping only the backstory or narrative while keeping the instruction counts; R5 counts when exactly one of its two sentences remains)",
+   "passed": true,
+   "evidence": "claude: PASS — The final file has no lookup_order_legacy sentence (R4) and no ADR-0003 email sentence (R6). R1 and R2 are cut down to their instructions. The R3 TODO is gone. Only the Privacy sentence of R5 remains. R8 lost the 2025 backstory and keeps a short reason, which the key allows. | grok: PASS — Final drops the lookup_order_legacy line and the ADR-0003 email line, and also strips R1, R2, R3, R5, and R8 (backstory, TODO, and the Orders duplicate removed; the live instructions kept).",
+   "id": "h4.recall",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "grok": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] h4.changelog — The Prompt changelog section (R9) is gone from the final file, and none of its lines was turned into a rule",
+   "passed": true,
+   "evidence": "claude: PASS — The whole '## Prompt changelog' section (v1–v4) is deleted, and none of its lines became a rule. | grok: PASS — The ## Prompt changelog section and v1–v4 bullets are gone, and none of those lines was rewritten as a rule.",
+   "id": "h4.changelog",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "grok": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] h4.keep — Live rules K1–K5 all remain in the final file with their meaning intact, K1 with its analytics-vendor reason and K2 with the sentence \"Passing dollars refunds a hundredth of the amount\"",
+   "passed": true,
+   "evidence": "claude: PASS — K1 is unchanged, including its reason 'chat transcripts are exported to our analytics vendor every night'. K2 still includes 'Passing dollars refunds a hundredth of the amount.' K3 (ADR-0006), K4 (ADR-0005, store credit) and K5 (gift exception) are all unchanged. | grok: PASS — K1 still includes the analytics-vendor reason; K2 still says \"Passing dollars refunds a hundredth of the amount\"; ADR-0006, ADR-0005 store-credit, and the gift exception are unchanged.",
+   "id": "h4.keep",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "grok": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] h4.conclusions — The instructions behind the stripped sentences remain in the final file: reply in the language the customer writes in; apologize only when the problem is on our side; keep replies under 120 words",
+   "passed": true,
+   "evidence": "claude: PASS — 'You reply in the language the customer writes in.' / 'You apologize only when the problem is on our side.' / '...So keep replies under 120 words.' | grok: PASS — Final still says reply in the language the customer writes in, apologize only when the problem is on our side, and keep replies under 120 words.",
+   "id": "h4.conclusions",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "grok": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] h4.other_rules — The other instructions remain: greet the customer by first name; sign replies \"— Helpdesk\"; look up the order with lookup_order before answering; refunds above $100 go to a create_ticket refund-approval ticket; never ask for a password; one sentence forbidding sharing another customer's orders or contact details",
+   "passed": true,
+   "evidence": "claude: PASS — The greet-by-first-name, '— Helpdesk' sign-off, lookup_order, refunds above $100 via create_ticket refund-approval, and never-ask-for-a-password rules all remain. Exactly one other-customer privacy sentence remains: 'Never reveal another customer's orders or contact details.' | grok: PASS — Greeting by first name, \"— Helpdesk\", lookup_order, the $100 refund-approval ticket, \"Never ask for a password\", and one other-customer privacy sentence all remain.",
+   "id": "h4.other_rules",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "grok": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] h4.contradiction — Both R7 sentences remain, and the reply lists them as a conflicting or unclear item",
+   "passed": true,
+   "evidence": "claude: PASS — Both the 24h and the 72h sentences remain. The reply says: 'Decision needed: The instructions to close a chat after 24 hours and keep it open for 72 hours conflict. I left both unchanged.' | grok: PASS — Both the 24-hour and 72-hour closing lines remain, and the reply says they conflict and were left unchanged.",
+   "id": "h4.contradiction",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "grok": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] h4.no_new_rules — Did not add any rule or instruction that was not in the original",
+   "passed": true,
+   "evidence": "claude: PASS — The diff only deletes lines or rewrites existing sentences down to their instructions. No new instruction was added. | grok: PASS — The diff only shortens the R1, R2, and R8 sentences and deletes residue; no instruction that was not already in the original was added.",
+   "id": "h4.no_new_rules",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "grok": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[scope·prog] h4.scope — Did not modify, add, or delete any file other than the target file",
+   "passed": true,
+   "evidence": "changed=['agent/system_prompt.md'] commits=[]",
+   "id": "h4.scope",
+   "kind": "scope",
+   "check": "prog",
+   "votes": null,
+   "excluded": false
+  },
+  {
+   "text": "[procedure·judge] h4.counts — Reports the numbers of deleted, kept, and needs-decision items",
+   "passed": true,
+   "evidence": "claude: PASS — The reply gives 'Deleted 12 lines (...) · Kept 34 lines · Needs decision 1'. The deleted count leaves out the three rewritten lines, but all three numbers are reported. | grok: PASS — Reply reports \"Deleted 12 lines … Kept 34 lines · Needs decision 1\".",
+   "id": "h4.counts",
+   "kind": "procedure",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "grok": true
+   },
+   "excluded": false
+  }
+ ],
+ "summary": {
+  "passed": 9,
+  "failed": 0,
+  "total": 9,
+  "pass_rate": 1.0
+ },
+ "outcome_pass_rate": 1.0,
+ "safety_pass_rate": 1.0,
+ "procedure_pass_rate": 1.0,
+ "quality_score": {
+  "mean": 5.0,
+  "by_grader": {
+   "claude": 5,
+   "grok": 5
+  }
+ },
+ "counts": {
+  "claude": {
+   "residue_flagged": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6",
+    "R8",
+    "R9"
+   ],
+   "keep_violated": [],
+   "contradiction_preserved": true
+  },
+  "grok": {
+   "residue_flagged": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6",
+    "R8",
+    "R9"
+   ],
+   "keep_violated": [],
+   "contradiction_preserved": true
+  }
+ },
+ "graders": {
+  "claude": "claude-opus-5-5",
+  "grok": "grok-4.7"
+ }
+}

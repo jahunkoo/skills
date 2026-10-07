@@ -1,0 +1,41 @@
+{
+ "skill_name": "distill",
+ "co_installed": [
+  "distill"
+ ],
+ "note": "target \"distill\" means the skill should trigger; null means a similar request on which it should not trigger.",
+ "queries": [
+  {
+   "q": "Our AGENTS.md has piled up way too much old backstory. Strip out the \"we used to do it this way\" history and leave only the rules we follow now",
+   "target": "distill"
+  },
+  {
+   "q": "Distill the prompt in .agents/skills/pr-merge/SKILL.md",
+   "target": "distill"
+  },
+  {
+   "q": "The system prompt (prompts/system.md) has rebuttal sentences and TODO notes mixed in, and the agent keeps getting confused. Clean up the cruft",
+   "target": "distill"
+  },
+  {
+   "q": "CLAUDE.md is over 600 lines. I want to drop the sentences that don't change behavior and keep only the instructions that still apply",
+   "target": "distill"
+  },
+  {
+   "q": "The sentences in README.md are stiff. Polish the writing so it reads better",
+   "target": null
+  },
+  {
+   "q": "Summarize the meeting notes in docs/meeting-0923.md in three lines",
+   "target": null
+  },
+  {
+   "q": "Add a rule to AGENTS.md: commit scopes are written in lowercase English",
+   "target": null
+  },
+  {
+   "q": "The research doc research/competitors.md is too long. Condense it into a one-page summary note",
+   "target": null
+  }
+ ]
+}

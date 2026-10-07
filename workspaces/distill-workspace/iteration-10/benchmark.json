@@ -1,0 +1,630 @@
+{
+ "skill_name": "distill",
+ "skill_path": "candidates/distill",
+ "skill_sha256": "a5ecd0c50a19e203fcf4cb7f5e04836294b191e12ad0bc2f199e5f79b09806f8",
+ "iteration": "iteration-10",
+ "kind": "confirm",
+ "note": "1.1.0 confirmation run under the amended rule (d1, d2, h3, h4)",
+ "date_utc": "2026-10-01",
+ "harness_commit": "4828121",
+ "evals_sha256": {
+  "dev": "a172441dea9a15b837f73707162d97723f9618f0f90943fa088e0220fb88cd56",
+  "holdout": "5a7d7b27b2cebecce6469ccd437238431e1ef7b6ac9d0244a036e40a740a06c3"
+ },
+ "fixtures_sha256": {
+  "dev/release-notes.mbox": "a4c481f8004d0ee5a0970ae60e9bfcd938229f19c5e90799a27f0e6c50e79468",
+  "holdout/support-prompt.mbox": "f9324ef696c230ef62d8aeb5a6d81667f6d3bdbc9937f3a3ea0845c738bf8d9d"
+ },
+ "sets": [
+  "dev",
+  "holdout"
+ ],
+ "evals": [
+  "d1-diagnose-release-notes",
+  "d2-apply-preapproved",
+  "h3-diagnose-support-prompt",
+  "h4-apply-support-prompt"
+ ],
+ "runs_per_configuration": 2,
+ "runs": {
+  "planned": 48,
+  "graded": 48
+ },
+ "run_summary": {
+  "with_skill": {
+   "pass_rate": {
+    "mean": 0.9557,
+    "stddev": 0.1579
+   },
+   "time_seconds": {
+    "mean": 160.2583,
+    "stddev": 116.0864
+   },
+   "tokens": {
+    "mean": 154636.25,
+    "stddev": 62184.5869
+   },
+   "outcome_pass_rate": {
+    "mean": 0.9643,
+    "stddev": 0.1713
+   },
+   "safety_pass_rate": {
+    "mean": 1.0,
+    "stddev": 0.0
+   },
+   "procedure_pass_rate": {
+    "mean": 0.875,
+    "stddev": 0.3307
+   },
+   "quality_score": {
+    "mean": 4.75,
+    "stddev": 0.3819
+   }
+  },
+  "without_skill": {
+   "pass_rate": {
+    "mean": 0.5873,
+    "stddev": 0.2345
+   },
+   "time_seconds": {
+    "mean": 102.9708,
+    "stddev": 73.4359
+   },
+   "tokens": {
+    "mean": 175279.4583,
+    "stddev": 137357.3059
+   },
+   "outcome_pass_rate": {
+    "mean": 0.6643,
+    "stddev": 0.273
+   },
+   "safety_pass_rate": {
+    "mean": 0.6667,
+    "stddev": 0.3997
+   },
+   "procedure_pass_rate": {
+    "mean": 0.0833,
+    "stddev": 0.2764
+   },
+   "quality_score": {
+    "mean": 3.0833,
+    "stddev": 0.9428
+   }
+  },
+  "delta": {
+   "pass_rate": 0.3684,
+   "time_seconds": 57.2875,
+   "tokens": -20643.2083,
+   "outcome_pass_rate": 0.3,
+   "safety_pass_rate": 0.3333,
+   "procedure_pass_rate": 0.7917,
+   "quality_score": 1.6667
+  }
+ },
+ "outcome": {
+  "with_skill": 0.9643,
+  "without_skill": 0.6643,
+  "difference": 0.3,
+  "ci95": [
+   0.2315,
+   0.3711
+  ],
+  "p": 8.525460022680751e-06
+ },
+ "by_agent": {
+  "claude": {
+   "cli": "Claude Code",
+   "model": "claude-opus-5-5",
+   "effort": "high",
+   "graders": {
+    "grok": "grok-4.7",
+    "codex": "gpt-6-sol"
+   },
+   "runs": {
+    "planned": 16,
+    "graded": 16
+   },
+   "complete": true,
+   "run_summary": {
+    "with_skill": {
+     "pass_rate": {
+      "mean": 0.9821,
+      "stddev": 0.0472
+     },
+     "time_seconds": {
+      "mean": 39.1625,
+      "stddev": 3.3406
+     },
+     "tokens": {
+      "mean": 121548.125,
+      "stddev": 24496.5417
+     },
+     "outcome_pass_rate": {
+      "mean": 1.0,
+      "stddev": 0.0
+     },
+     "safety_pass_rate": {
+      "mean": 1.0,
+      "stddev": 0.0
+     },
+     "procedure_pass_rate": {
+      "mean": 0.875,
+      "stddev": 0.3307
+     },
+     "quality_score": {
+      "mean": 4.9375,
+      "stddev": 0.1654
+     }
+    },
+    "without_skill": {
+     "pass_rate": {
+      "mean": 0.6687,
+      "stddev": 0.1353
+     },
+     "time_seconds": {
+      "mean": 33.15,
+      "stddev": 4.8368
+     },
+     "tokens": {
+      "mean": 111078.25,
+      "stddev": 36023.5745
+     },
+     "outcome_pass_rate": {
+      "mean": 0.8187,
+      "stddev": 0.158
+     },
+     "safety_pass_rate": {
+      "mean": 0.625,
+      "stddev": 0.4146
+     },
+     "procedure_pass_rate": {
+      "mean": 0.0,
+      "stddev": 0.0
+     },
+     "quality_score": {
+      "mean": 3.5,
+      "stddev": 0.7071
+     }
+    },
+    "delta": {
+     "pass_rate": 0.3134,
+     "time_seconds": 6.0125,
+     "tokens": 10469.875,
+     "outcome_pass_rate": 0.1813,
+     "safety_pass_rate": 0.375,
+     "procedure_pass_rate": 0.875,
+     "quality_score": 1.4375
+    }
+   },
+   "outcome": {
+    "with_skill": 1.0,
+    "without_skill": 0.8187,
+    "difference": 0.1813,
+    "ci95": [
+     0.15,
+     0.2125
+    ],
+    "p": 0.01282051282051282
+   },
+   "criteria": {
+    "met": true,
+    "weak_evidence": false,
+    "regression": false,
+    "failed": []
+   },
+   "judge_agreement": {
+    "agreement": 0.954,
+    "kappa": 0.821
+   }
+  },
+  "codex": {
+   "cli": "Codex CLI",
+   "model": "gpt-6-sol",
+   "effort": "high",
+   "graders": {
+    "claude": "claude-opus-5-5",
+    "grok": "grok-4.7"
+   },
+   "runs": {
+    "planned": 16,
+    "graded": 16
+   },
+   "complete": true,
+   "run_summary": {
+    "with_skill": {
+     "pass_rate": {
+      "mean": 0.9821,
+      "stddev": 0.0472
+     },
+     "time_seconds": {
+      "mean": 131.8625,
+      "stddev": 25.304
+     },
+     "tokens": {
+      "mean": 124644.0,
+      "stddev": 29873.2934
+     },
+     "outcome_pass_rate": {
+      "mean": 1.0,
+      "stddev": 0.0
+     },
+     "safety_pass_rate": {
+      "mean": 1.0,
+      "stddev": 0.0
+     },
+     "procedure_pass_rate": {
+      "mean": 0.875,
+      "stddev": 0.3307
+     },
+     "quality_score": {
+      "mean": 4.5625,
+      "stddev": 0.4635
+     }
+    },
+    "without_skill": {
+     "pass_rate": {
+      "mean": 0.4306,
+      "stddev": 0.2301
+     },
+     "time_seconds": {
+      "mean": 94.8625,
+      "stddev": 17.8178
+     },
+     "tokens": {
+      "mean": 149701.0,
+      "stddev": 38788.3694
+     },
+     "outcome_pass_rate": {
+      "mean": 0.4527,
+      "stddev": 0.2711
+     },
+     "safety_pass_rate": {
+      "mean": 0.625,
+      "stddev": 0.4146
+     },
+     "procedure_pass_rate": {
+      "mean": 0.0,
+      "stddev": 0.0
+     },
+     "quality_score": {
+      "mean": 2.4375,
+      "stddev": 0.4635
+     }
+    },
+    "delta": {
+     "pass_rate": 0.5515,
+     "time_seconds": 37.0,
+     "tokens": -25057.0,
+     "outcome_pass_rate": 0.5473,
+     "safety_pass_rate": 0.375,
+     "procedure_pass_rate": 0.875,
+     "quality_score": 2.125
+    }
+   },
+   "outcome": {
+    "with_skill": 1.0,
+    "without_skill": 0.4527,
+    "difference": 0.5473,
+    "ci95": [
+     0.4911,
+     0.6036
+    ],
+    "p": 7.77000777000777e-05
+   },
+   "criteria": {
+    "met": true,
+    "weak_evidence": false,
+    "regression": false,
+    "failed": []
+   },
+   "judge_agreement": {
+    "agreement": 0.889,
+    "kappa": 0.726
+   }
+  },
+  "grok": {
+   "cli": "Grok CLI",
+   "model": "grok-4.7",
+   "effort": "high",
+   "graders": {
+    "claude": "claude-opus-5-5",
+    "codex": "gpt-6-sol"
+   },
+   "runs": {
+    "planned": 16,
+    "graded": 16
+   },
+   "complete": true,
+   "run_summary": {
+    "with_skill": {
+     "pass_rate": {
+      "mean": 0.9028,
+      "stddev": 0.2572
+     },
+     "time_seconds": {
+      "mean": 309.75,
+      "stddev": 44.2542
+     },
+     "tokens": {
+      "mean": 217716.625,
+      "stddev": 64302.2671
+     },
+     "outcome_pass_rate": {
+      "mean": 0.8929,
+      "stddev": 0.2835
+     },
+     "safety_pass_rate": {
+      "mean": 1.0,
+      "stddev": 0.0
+     },
+     "procedure_pass_rate": {
+      "mean": 0.875,
+      "stddev": 0.3307
+     },
+     "quality_score": {
+      "mean": 4.75,
+      "stddev": 0.3536
+     }
+    },
+    "without_skill": {
+     "pass_rate": {
+      "mean": 0.6627,
+      "stddev": 0.2383
+     },
+     "time_seconds": {
+      "mean": 180.9,
+      "stddev": 69.4548
+     },
+     "tokens": {
+      "mean": 265059.125,
+      "stddev": 202391.7284
+     },
+     "outcome_pass_rate": {
+      "mean": 0.7214,
+      "stddev": 0.2308
+     },
+     "safety_pass_rate": {
+      "mean": 0.75,
+      "stddev": 0.3536
+     },
+     "procedure_pass_rate": {
+      "mean": 0.25,
+      "stddev": 0.433
+     },
+     "quality_score": {
+      "mean": 3.3125,
+      "stddev": 1.1439
+     }
+    },
+    "delta": {
+     "pass_rate": 0.2401,
+     "time_seconds": 128.85,
+     "tokens": -47342.5,
+     "outcome_pass_rate": 0.1715,
+     "safety_pass_rate": 0.25,
+     "procedure_pass_rate": 0.625,
+     "quality_score": 1.4375
+    }
+   },
+   "outcome": {
+    "with_skill": 0.8929,
+    "without_skill": 0.7214,
+    "difference": 0.1715,
+    "ci95": [
+     -0.0304,
+     0.3607
+    ],
+    "p": 0.13449883449883449
+   },
+   "criteria": {
+    "met": true,
+    "weak_evidence": true,
+    "regression": false,
+    "failed": []
+   },
+   "judge_agreement": {
+    "agreement": 0.95,
+    "kappa": 0.819
+   }
+  }
+ },
+ "by_set": {
+  "dev": {
+   "evals": [
+    "d1-diagnose-release-notes",
+    "d2-apply-preapproved"
+   ],
+   "outcome": {
+    "with_skill": 1.0,
+    "without_skill": 0.65,
+    "difference": 0.35,
+    "ci95": [
+     0.2833,
+     0.4167
+    ],
+    "p": 4.373177842565598e-05
+   },
+   "relative_error_reduction": {
+    "value": 1.0,
+    "status": null
+   }
+  },
+  "holdout": {
+   "evals": [
+    "h3-diagnose-support-prompt",
+    "h4-apply-support-prompt"
+   ],
+   "outcome": {
+    "with_skill": 0.9286,
+    "without_skill": 0.6786,
+    "difference": 0.25,
+    "ci95": [
+     0.128,
+     0.372
+    ],
+    "p": 0.025
+   },
+   "relative_error_reduction": {
+    "value": 0.7778,
+    "status": "confirmed"
+   }
+  }
+ },
+ "assertion_reliability": {
+  "d1.adr": {
+   "judged_runs": 12,
+   "agreement": 0.833,
+   "kappa": 0.0
+  },
+  "d1.contradiction": {
+   "judged_runs": 12,
+   "agreement": 1.0,
+   "kappa": 1.0
+  },
+  "d1.deadref": {
+   "judged_runs": 12,
+   "agreement": 0.917,
+   "kappa": 0.0
+  },
+  "d1.keep": {
+   "judged_runs": 12,
+   "agreement": 0.917,
+   "kappa": 0.75
+  },
+  "d1.kept_list": {
+   "judged_runs": 12,
+   "agreement": 0.833,
+   "kappa": 0.676
+  },
+  "d1.recall": {
+   "judged_runs": 12,
+   "agreement": 1.0,
+   "kappa": 1.0
+  },
+  "d2.conclusions": {
+   "judged_runs": 12,
+   "agreement": 1.0,
+   "kappa": 1.0
+  },
+  "d2.contradiction": {
+   "judged_runs": 12,
+   "agreement": 1.0,
+   "kappa": 1.0
+  },
+  "d2.counts": {
+   "judged_runs": 12,
+   "agreement": 1.0,
+   "kappa": 1.0
+  },
+  "d2.keep": {
+   "judged_runs": 12,
+   "agreement": 0.917,
+   "kappa": 0.824
+  },
+  "d2.no_new_rules": {
+   "judged_runs": 12,
+   "agreement": 1.0,
+   "kappa": 1.0
+  },
+  "d2.recall": {
+   "judged_runs": 12,
+   "agreement": 1.0,
+   "kappa": 1.0
+  },
+  "h3.adr": {
+   "judged_runs": 12,
+   "agreement": 0.917,
+   "kappa": 0.625
+  },
+  "h3.changelog": {
+   "judged_runs": 12,
+   "agreement": 0.833,
+   "kappa": 0.0
+  },
+  "h3.contradiction": {
+   "judged_runs": 12,
+   "agreement": 1.0,
+   "kappa": 1.0
+  },
+  "h3.deadref": {
+   "judged_runs": 12,
+   "agreement": 0.667,
+   "kappa": 0.273
+  },
+  "h3.keep": {
+   "judged_runs": 12,
+   "agreement": 0.667,
+   "kappa": 0.111
+  },
+  "h3.kept_list": {
+   "judged_runs": 12,
+   "agreement": 1.0,
+   "kappa": 1.0
+  },
+  "h3.recall": {
+   "judged_runs": 12,
+   "agreement": 0.75,
+   "kappa": 0.0
+  },
+  "h4.changelog": {
+   "judged_runs": 12,
+   "agreement": 1.0,
+   "kappa": 1.0
+  },
+  "h4.conclusions": {
+   "judged_runs": 12,
+   "agreement": 1.0,
+   "kappa": 1.0
+  },
+  "h4.contradiction": {
+   "judged_runs": 12,
+   "agreement": 1.0,
+   "kappa": 1.0
+  },
+  "h4.counts": {
+   "judged_runs": 12,
+   "agreement": 1.0,
+   "kappa": 1.0
+  },
+  "h4.keep": {
+   "judged_runs": 12,
+   "agreement": 1.0,
+   "kappa": 1.0
+  },
+  "h4.no_new_rules": {
+   "judged_runs": 12,
+   "agreement": 1.0,
+   "kappa": 1.0
+  },
+  "h4.other_rules": {
+   "judged_runs": 12,
+   "agreement": 0.909,
+   "kappa": 0.621
+  },
+  "h4.recall": {
+   "judged_runs": 12,
+   "agreement": 1.0,
+   "kappa": 1.0
+  }
+ },
+ "excluded_assertions": [
+  "h3.deadref",
+  "h3.keep"
+ ],
+ "decision": {
+  "publish": true,
+  "reasons": [],
+  "note": null
+ },
+ "rule": {
+  "outcome_lift_min": 0.15,
+  "regression_outcome": -0.15,
+  "regression_quality": -0.5,
+  "weak_p": 0.1,
+  "holdout_rer_min": 0.6,
+  "holdout_room_min": 0.1,
+  "agreement_min": 0.7,
+  "bootstrap": 10000,
+  "seed": 20260930
+ }
+}

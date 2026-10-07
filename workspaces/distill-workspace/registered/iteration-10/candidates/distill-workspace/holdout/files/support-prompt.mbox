@@ -1,0 +1,339 @@
+From f6199b5fdd04078ea213e8c046048adfdf2ac69e Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Mon, 3 Nov 2025 10:00:00 +0900
+Subject: [PATCH 1/4] feat(agent): support agent with system prompt and tools
+
+---
+ README.md                                  |  4 +++
+ agent/bot.py                               | 14 ++++++++
+ agent/system_prompt.md                     | 37 ++++++++++++++++++++
+ agent/tools.py                             | 40 ++++++++++++++++++++++
+ docs/adr/0003-billing-disputes-by-email.md |  8 +++++
+ docs/adr/0005-no-store-credit.md           | 13 +++++++
+ 6 files changed, 116 insertions(+)
+ create mode 100644 README.md
+ create mode 100644 agent/bot.py
+ create mode 100644 agent/system_prompt.md
+ create mode 100644 agent/tools.py
+ create mode 100644 docs/adr/0003-billing-disputes-by-email.md
+ create mode 100644 docs/adr/0005-no-store-credit.md
+
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..d16b952
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,4 @@
++# helpdesk
++
++Chat support agent for Northwind Outfitters. `agent/bot.py` builds each model request from
++`agent/system_prompt.md` and the tools in `agent/tools.py`. Decisions are recorded in `docs/adr/`.
+diff --git a/agent/bot.py b/agent/bot.py
+new file mode 100644
+index 0000000..4bcb511
+--- /dev/null
++++ b/agent/bot.py
+@@ -0,0 +1,14 @@
++"""Chat entry point: builds the model request for one customer message."""
++from pathlib import Path
++
++from tools import TOOLS
++
++SYSTEM_PROMPT = (Path(__file__).parent / "system_prompt.md").read_text()
++
++
++def build_request(history, message):
++    return {
++        "system": SYSTEM_PROMPT,
++        "tools": [tool.spec for tool in TOOLS],
++        "messages": history + [{"role": "user", "content": message}],
++    }
+diff --git a/agent/system_prompt.md b/agent/system_prompt.md
+new file mode 100644
+index 0000000..97201f9
+--- /dev/null
++++ b/agent/system_prompt.md
+@@ -0,0 +1,37 @@
++# Helpdesk support agent
++
++You answer customer questions for Northwind Outfitters' online store in the chat widget.
++
++## Language and tone
++
++- Answer in English. Every reply goes through the translation service before it reaches the customer.
++- Greet the customer by first name.
++- Open every reply with an apology for the inconvenience.
++- Sign every reply "— Helpdesk".
++
++## Orders and refunds
++
++- Look up the order with `lookup_order` before you answer any question about it.
++- For orders placed before 2024, use `lookup_order_legacy` instead.
++- `issue_refund` takes the amount in cents: pass 4999 for $49.99. Passing dollars refunds a hundredth of the amount.
++- Refunds above $100 need a human: open a ticket with `create_ticket` (priority `normal`, tag `refund-approval`) instead of calling `issue_refund`.
++- Do not offer store credit in place of a refund — ADR-0005 rejected it because EU customers are entitled to a refund to the original payment method.
++- Exception: for orders marked `gift`, send refund details to the purchaser only, never to the recipient.
++- Do not share order or contact information that belongs to another customer.
++
++## Escalation
++
++- Send billing disputes to billing@northwind.example by email (ADR-0003).
++
++## Privacy
++
++- Never reveal another customer's orders or contact details.
++- Never ask for a password.
++
++## Closing a chat
++
++- End the chat after 24 hours without a reply from the customer.
++
++## Prompt changelog
++
++- v1 (2025-11): first version, English only.
+diff --git a/agent/tools.py b/agent/tools.py
+new file mode 100644
+index 0000000..879cbfc
+--- /dev/null
++++ b/agent/tools.py
+@@ -0,0 +1,40 @@
++"""Tools the support agent can call. TOOLS is the list registered with the model."""
++from dataclasses import dataclass
++
++
++@dataclass
++class Tool:
++    name: str
++    description: str
++
++    @property
++    def spec(self):
++        return {"name": self.name, "description": self.description}
++
++
++def lookup_order(order_id: str) -> dict:
++    """Find an order by id (orders placed in 2024 or later)."""
++    raise NotImplementedError
++
++
++def lookup_order_legacy(order_id: str) -> dict:
++    """Find an order placed in the old store, before 2024."""
++    raise NotImplementedError
++
++
++def create_ticket(summary: str, priority: str = "normal", tags: list | None = None) -> str:
++    """Open a ticket for the human team. priority: low | normal | high."""
++    raise NotImplementedError
++
++
++def issue_refund(order_id: str, amount_cents: int) -> None:
++    """Refund part or all of an order. amount_cents is in cents: 4999 refunds $49.99."""
++    raise NotImplementedError
++
++
++TOOLS = [
++    Tool("lookup_order", lookup_order.__doc__),
++    Tool("lookup_order_legacy", lookup_order_legacy.__doc__),
++    Tool("create_ticket", create_ticket.__doc__),
++    Tool("issue_refund", issue_refund.__doc__),
++]
+diff --git a/docs/adr/0003-billing-disputes-by-email.md b/docs/adr/0003-billing-disputes-by-email.md
+new file mode 100644
+index 0000000..822546c
+--- /dev/null
++++ b/docs/adr/0003-billing-disputes-by-email.md
+@@ -0,0 +1,8 @@
++# ADR-0003: Billing disputes go to the billing team by email
++
++Status: accepted
++Date: 2025-11-03
++
++## Decision
++
++The support agent forwards billing disputes to billing@northwind.example.
+diff --git a/docs/adr/0005-no-store-credit.md b/docs/adr/0005-no-store-credit.md
+new file mode 100644
+index 0000000..8c0f912
+--- /dev/null
++++ b/docs/adr/0005-no-store-credit.md
+@@ -0,0 +1,13 @@
++# ADR-0005: No store credit in place of refunds
++
++Status: accepted
++Date: 2025-11-03
++
++## Context
++
++Store credit was proposed as an alternative to refunds, to keep the revenue in the store.
++
++## Decision
++
++Rejected. EU customers are entitled to a refund to the original payment method, so the agent never
++offers store credit instead of a refund.
+-- 
+2.50.1 (Apple Git-155)
+
+
+From 9aeb4b418bd68ebe46ecffd74d876c31f1acef0c Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Wed, 18 Mar 2026 15:00:00 +0900
+Subject: [PATCH 2/4] feat(agent): reply in the customer's language
+
+---
+ agent/system_prompt.md | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/agent/system_prompt.md b/agent/system_prompt.md
+index 97201f9..a489413 100644
+--- a/agent/system_prompt.md
++++ b/agent/system_prompt.md
+@@ -4,11 +4,14 @@ You answer customer questions for Northwind Outfitters' online store in the chat
+ 
+ ## Language and tone
+ 
+-- Answer in English. Every reply goes through the translation service before it reaches the customer.
++- Until March 2026 we answered in English only and ran every reply through a translation service; that service was retired, and now you reply in the language the customer writes in.
+ - Greet the customer by first name.
+-- Open every reply with an apology for the inconvenience.
++- Earlier drafts told you to open every reply with an apology, but in fact you apologize only when the problem is on our side.
++- We spent most of 2025 comparing models and prompt styles. Long answers tested worst: customers skimmed them and opened a second ticket, and the December review showed that the shortest variant resolved the most chats. So keep replies under 120 words.
+ - Sign every reply "— Helpdesk".
+ 
++<!-- TODO(maria): this section still reads robotic; rewrite before Q4. -->
++
+ ## Orders and refunds
+ 
+ - Look up the order with `lookup_order` before you answer any question about it.
+@@ -31,7 +34,9 @@ You answer customer questions for Northwind Outfitters' online store in the chat
+ ## Closing a chat
+ 
+ - End the chat after 24 hours without a reply from the customer.
++- Keep a chat open for 72 hours after the customer's last message, so they can come back to it.
+ 
+ ## Prompt changelog
+ 
+ - v1 (2025-11): first version, English only.
++- v2 (2026-03): replies in the customer's language; dropped the apology opener.
+-- 
+2.50.1 (Apple Git-155)
+
+
+From e06d19b72bba70d7d0696f4482142bfe6fe8f292 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Tue, 9 Jun 2026 11:00:00 +0900
+Subject: [PATCH 3/4] feat(agent): billing disputes become tickets (ADR-0006);
+ old-store orders migrated
+
+---
+ agent/system_prompt.md                       |  2 ++
+ agent/tools.py                               |  8 +-------
+ docs/adr/0003-billing-disputes-by-email.md   |  2 +-
+ docs/adr/0006-billing-disputes-as-tickets.md | 10 ++++++++++
+ 4 files changed, 14 insertions(+), 8 deletions(-)
+ create mode 100644 docs/adr/0006-billing-disputes-as-tickets.md
+
+diff --git a/agent/system_prompt.md b/agent/system_prompt.md
+index a489413..04745bb 100644
+--- a/agent/system_prompt.md
++++ b/agent/system_prompt.md
+@@ -25,6 +25,7 @@ You answer customer questions for Northwind Outfitters' online store in the chat
+ ## Escalation
+ 
+ - Send billing disputes to billing@northwind.example by email (ADR-0003).
++- Escalate billing disputes with `create_ticket` at priority `high` (ADR-0006).
+ 
+ ## Privacy
+ 
+@@ -40,3 +41,4 @@ You answer customer questions for Northwind Outfitters' online store in the chat
+ 
+ - v1 (2025-11): first version, English only.
+ - v2 (2026-03): replies in the customer's language; dropped the apology opener.
++- v3 (2026-06): billing disputes go to tickets (ADR-0006).
+diff --git a/agent/tools.py b/agent/tools.py
+index 879cbfc..be7f7e7 100644
+--- a/agent/tools.py
++++ b/agent/tools.py
+@@ -13,12 +13,7 @@ class Tool:
+ 
+ 
+ def lookup_order(order_id: str) -> dict:
+-    """Find an order by id (orders placed in 2024 or later)."""
+-    raise NotImplementedError
+-
+-
+-def lookup_order_legacy(order_id: str) -> dict:
+-    """Find an order placed in the old store, before 2024."""
++    """Find an order by id, including orders imported from the old store in the 2026 migration."""
+     raise NotImplementedError
+ 
+ 
+@@ -34,7 +29,6 @@ def issue_refund(order_id: str, amount_cents: int) -> None:
+ 
+ TOOLS = [
+     Tool("lookup_order", lookup_order.__doc__),
+-    Tool("lookup_order_legacy", lookup_order_legacy.__doc__),
+     Tool("create_ticket", create_ticket.__doc__),
+     Tool("issue_refund", issue_refund.__doc__),
+ ]
+diff --git a/docs/adr/0003-billing-disputes-by-email.md b/docs/adr/0003-billing-disputes-by-email.md
+index 822546c..4372bda 100644
+--- a/docs/adr/0003-billing-disputes-by-email.md
++++ b/docs/adr/0003-billing-disputes-by-email.md
+@@ -1,6 +1,6 @@
+ # ADR-0003: Billing disputes go to the billing team by email
+ 
+-Status: accepted
++Status: superseded by ADR-0006 (2026-06-09)
+ Date: 2025-11-03
+ 
+ ## Decision
+diff --git a/docs/adr/0006-billing-disputes-as-tickets.md b/docs/adr/0006-billing-disputes-as-tickets.md
+new file mode 100644
+index 0000000..e6c8990
+--- /dev/null
++++ b/docs/adr/0006-billing-disputes-as-tickets.md
+@@ -0,0 +1,10 @@
++# ADR-0006: Billing disputes become high-priority tickets
++
++Status: accepted
++Date: 2026-06-09
++Supersedes: ADR-0003
++
++## Decision
++
++The agent escalates billing disputes with `create_ticket` at priority `high`. Disputes sent by email
++were lost when the billing inbox changed owners.
+-- 
+2.50.1 (Apple Git-155)
+
+
+From e1d8d23f141fbc7266c91ac3ddfd97c137c71b64 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Thu, 20 Aug 2026 17:00:00 +0900
+Subject: [PATCH 4/4] fix(agent): never paste card numbers beyond the last four
+ digits
+
+---
+ agent/system_prompt.md | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/agent/system_prompt.md b/agent/system_prompt.md
+index 04745bb..7b2488c 100644
+--- a/agent/system_prompt.md
++++ b/agent/system_prompt.md
+@@ -31,6 +31,7 @@ You answer customer questions for Northwind Outfitters' online store in the chat
+ 
+ - Never reveal another customer's orders or contact details.
+ - Never ask for a password.
++- Never paste more than the last four digits of a card number — chat transcripts are exported to our analytics vendor every night.
+ 
+ ## Closing a chat
+ 
+@@ -42,3 +43,4 @@ You answer customer questions for Northwind Outfitters' online store in the chat
+ - v1 (2025-11): first version, English only.
+ - v2 (2026-03): replies in the customer's language; dropped the apology opener.
+ - v3 (2026-06): billing disputes go to tickets (ADR-0006).
++- v4 (2026-08): card-number rule.
+-- 
+2.50.1 (Apple Git-155)
+

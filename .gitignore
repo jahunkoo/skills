@@ -1,0 +1,28 @@
+# Operating system and editor files
+.DS_Store
+.idea/
+.vscode/
+
+# Python environments and bytecode
+__pycache__/
+*.pyc
+.venv/
+
+# Secrets
+.env
+.env.*
+
+# Local skill installation copies and agent settings
+.agents/skills/
+.claude/
+.codex/
+.cursor/
+.gemini/
+.grok/
+# Keep .agents/plugins/ tracked for the Codex marketplace.
+
+# Temporary evaluation workspaces
+*-eval-ws/
+*-eval-ws-control/
+tmp/
+# Keep iteration-N/ confirmation-run source data tracked.

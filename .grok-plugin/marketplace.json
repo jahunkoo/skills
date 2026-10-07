@@ -1,0 +1,15 @@
+{
+  "name": "jahunkoo-skills",
+  "description": "Agent skills by Jahun Koo, each published with its evaluation evidence.",
+  "owner": {
+    "name": "Jahun Koo"
+  },
+  "plugins": [
+    {
+      "name": "distill",
+      "source": "./plugins/distill",
+      "description": "Removes outdated history from agent instructions, keeping only what the agent should do now. Reports first and edits only after you approve.",
+      "version": "1.1.0"
+    }
+  ]
+}

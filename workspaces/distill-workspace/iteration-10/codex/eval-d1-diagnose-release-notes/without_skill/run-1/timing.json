@@ -1,0 +1,14 @@
+{
+ "total_tokens": 186853,
+ "duration_ms": 117500,
+ "tool_calls": 12,
+ "turns": 1,
+ "peak_context_tokens": null,
+ "cli": "codex",
+ "cli_version": "codex-cli 0.157.1",
+ "model": "gpt-6-sol",
+ "model_reported": [],
+ "effort": "high",
+ "isolation": "temp-home",
+ "skills_seen": null
+}

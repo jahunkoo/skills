@@ -1,0 +1,114 @@
+{
+  "skill_name": "distill",
+  "note": "Assertion format: [kind·check] id — text. kind: gate (stopped before acting) · outcome (substance) · procedure (the skill's own form) · scope (no out-of-scope changes). check: prog (checks.py in the workspace) · judge (strict agreement of the two blind graders)",
+  "sets": {
+    "dev": {
+      "description": "Development evals on the release-notes fixture.",
+      "grader_notes": "- The answer key is `context/answer-key.md`. The original and the whole fixture are in `context/fixture/` (docs/format-guide.md does not exist).\n- In d1 (only a diagnosis was requested), judge by the proposals written in the answer (response.md). If the answer already edited the file (the target file changed in fixture.diff), also look at the edited result (final-target-SKILL.md).\n- In d2 (applying the changes was requested), judge final-target-SKILL.md against the original.\n- Fill in counts for every run: residue_flagged = the IDs among residue R1–R6 that were removed or proposed for removal; keep_violated = the IDs among K1–K5 that were deleted, proposed for deletion, or lost their meaning (especially K1's WHY clause and K2's rule and reason); contradiction_preserved = true if both R7 sentences remain (or were not deleted) and were raised for the user to decide.",
+      "grader_counts": {
+        "residue_flagged": [
+          "R1"
+        ],
+        "keep_violated": [],
+        "contradiction_preserved": true
+      }
+    },
+    "dev-web": {
+      "description": "The 1.0.0 holdout (storefront monorepo, layered AGENTS.md): first run in the 1.0.0 confirmation run (iteration-6), development evals from 1.1.0 on. Named \"holdout\" in iteration-6.",
+      "grader_notes": "- The answer key is `context/answer-key.md`. The original and the whole fixture are in `context/fixture/` (`docs/web-conventions.md` does not exist; the root `AGENTS.md` holds the repo-wide pnpm rule).\n- In h1 (only a diagnosis was requested), judge the content assertions by the proposals written in the answer (response.md). If the answer edited any file, h1.gate or h1.scope already fails; still judge the other assertions by what the answer proposed.\n- In h2 (applying the changes was requested), judge final-target-AGENTS.md against the original.\n- R5 (the pnpm sentence that duplicates the root AGENTS.md) is judged only by h1.ssot and h2.ssot, not by recall. The correct handling is to replace it with a pointer to the root AGENTS.md; restating the rule or dropping it with no pointer is not.\n- Fill in counts for every run: residue_flagged = the IDs among residue R1–R6 and R8 that were removed or proposed for removal (R5 counts when replaced with a pointer); keep_violated = the IDs among K1–K5 that were deleted, proposed for deletion, or lost their meaning (especially K1's WHY clause and K2's rule and reason); contradiction_preserved = true if both R7 sentences remain (or were not deleted) and were raised for the user to decide.",
+      "grader_counts": {
+        "residue_flagged": [
+          "R1"
+        ],
+        "keep_violated": [],
+        "contradiction_preserved": true
+      }
+    }
+  },
+  "evals": [
+    {
+      "id": 1,
+      "name": "d1-diagnose-release-notes",
+      "set": "dev",
+      "prompt": "Distill the prompt in prompts/release-notes/SKILL.md. I think some cruft has built up in it over time.",
+      "expected_output": "Does not modify the target file and produces a diagnostic report — raises residue R1–R6 with evidence (ADR status, missing file), keeps live rules K1–K5, and hands contradiction R7 to the user to decide.",
+      "files": [
+        "evals/files/release-notes.mbox"
+      ],
+      "fixture": "release-notes.mbox",
+      "assertions": [
+        "[gate·prog] d1.gate — Produced the diagnosis and stopped before modifying the target file (target file unchanged)",
+        "[outcome·judge] d1.contradiction — Raises contradiction R7 (merge by the day before the release vs. write on release day after the tag is created) as a decision for the user, and does not unilaterally delete either side (or settle on deleting it)",
+        "[outcome·judge] d1.adr — Judges the ADR-0003 reference as residue on the basis of having confirmed that the ADR's status is superseded",
+        "[outcome·judge] d1.deadref — Judges the docs/format-guide.md reference as a dead reference on the basis of having confirmed that the file does not exist",
+        "[outcome·judge] d1.recall — Lists at least 5 of residue R1–R6 for deletion or compression (or actually removes them)",
+        "[outcome·judge] d1.keep — Does not list any of live rules K1–K5 for deletion, and does not delete any of them",
+        "[procedure·judge] d1.kept_list — Separately shows the items that look like residue but were kept, with the reason for each (intentionally kept)"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "d2-apply-preapproved",
+      "set": "dev",
+      "prompt": "Strip the history and cruft that have built up in prompts/release-notes/SKILL.md. This time, go ahead and apply the changes without the confirmation step — but don't delete sentences that conflict with each other or that are hard to judge; leave them as they are and just note in your reply what was unclear.",
+      "expected_output": "The final file with the residue stripped — R1–R6 removed or compressed, K1–K5 and the concluding instructions preserved, both R7 sentences kept, no new rules, no files outside the target changed — plus a report of the counts.",
+      "files": [
+        "evals/files/release-notes.mbox"
+      ],
+      "fixture": "release-notes.mbox",
+      "assertions": [
+        "[outcome·judge] d2.recall — In the final file, at least 5 of residue R1–R6 have been stripped (stripping only the backstory while keeping the concluding sentence counts)",
+        "[outcome·judge] d2.keep — Live rules K1–K5 all remain in the final file with their meaning intact",
+        "[outcome·judge] d2.conclusions — The concluding instructions of the stripped sentences (write in CHANGELOG.md, write in English, leave out skip-changelog PRs) remain in the final file",
+        "[outcome·judge] d2.contradiction — Both R7 sentences remain, and the reply lists them as a conflicting or unclear item",
+        "[outcome·judge] d2.no_new_rules — Did not add any rule or instruction that was not in the original",
+        "[scope·prog] d2.scope — Did not modify, add, or delete any file other than the target file",
+        "[procedure·judge] d2.counts — Reports the numbers of deleted, kept, and needs-decision items"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "h1-diagnose-web-agents",
+      "set": "dev-web",
+      "prompt": "Can you distill apps/web/AGENTS.md? A lot of leftovers have piled up in it.",
+      "expected_output": "Does not modify any file and produces a diagnostic report — raises residue R1–R4, R6 and R8 with evidence (ADR status, missing file), proposes replacing R5 with a pointer to the root AGENTS.md, keeps live rules K1–K5 and the other instructions, and hands contradiction R7 to the user to decide.",
+      "files": [
+        "evals/files/web-agents.mbox"
+      ],
+      "fixture": "web-agents.mbox",
+      "assertions": [
+        "[gate·prog] h1.gate — Produced the diagnosis and stopped before modifying the target file (target file unchanged)",
+        "[scope·prog] h1.scope — Did not modify, add, or delete any other file either (the root AGENTS.md included)",
+        "[outcome·judge] h1.contradiction — Raises contradiction R7 (run e2e tests locally before every push vs. do not run e2e tests locally) as a decision for the user, and does not unilaterally delete either side (or settle on deleting it)",
+        "[outcome·judge] h1.ssot — Judges the pnpm-only sentence (R5) as a duplicate of the rule in the root AGENTS.md, on the basis of having read the root file, and proposes replacing it with a pointer to the root file (not editing the root file)",
+        "[outcome·judge] h1.adr — Judges the ADR-0012 reference as residue on the basis of having confirmed that ADR-0012 is superseded by ADR-0015",
+        "[outcome·judge] h1.deadref — Judges the docs/web-conventions.md reference as a dead reference on the basis of having confirmed that the file does not exist",
+        "[outcome·judge] h1.recall — Lists at least 5 of residue R1–R4, R6 and R8 for deletion or compression (or actually removes them)",
+        "[outcome·judge] h1.keep — Does not list any of live rules K1–K5 for deletion, and does not delete any of them",
+        "[procedure·judge] h1.kept_list — Separately shows the items that look like residue but were kept, with the reason for each (intentionally kept)"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "h2-apply-web-agents",
+      "set": "dev-web",
+      "prompt": "Strip the leftovers and history out of apps/web/AGENTS.md and make the edits directly — no need to check with me first. If two sentences conflict, or you can't tell whether one still applies, leave it as is and list it in your reply.",
+      "expected_output": "The final file with the residue stripped — R1–R4, R6 and R8 removed or compressed, R5 replaced with a pointer to the root AGENTS.md, K1–K5 and the other instructions preserved, both R7 sentences kept, no new rules, no files outside the target changed (the root AGENTS.md included) — plus a report of the counts.",
+      "files": [
+        "evals/files/web-agents.mbox"
+      ],
+      "fixture": "web-agents.mbox",
+      "assertions": [
+        "[outcome·judge] h2.recall — In the final file, at least 5 of residue R1–R4, R6 and R8 have been stripped (stripping only the backstory or narrative while keeping the instruction counts)",
+        "[outcome·judge] h2.ssot — In the final file, the pnpm-only sentence (R5) is replaced with a pointer to the root AGENTS.md: the rule is not restated in the app file, and it is not dropped without a pointer",
+        "[outcome·judge] h2.keep — Live rules K1–K5 all remain in the final file with their meaning intact",
+        "[outcome·judge] h2.conclusions — The instructions behind the stripped sentences remain in the final file: routes live in src/app/; every request goes through src/api/client.ts; run pnpm test before every commit",
+        "[outcome·judge] h2.other_rules — The other instructions remain: copy .env.example to .env.local; PascalCase component file names; next/image for every image (with the K5 exception); PRs against main with one approval from the web team",
+        "[outcome·judge] h2.contradiction — Both R7 sentences remain, and the reply lists them as a conflicting or unclear item",
+        "[outcome·judge] h2.no_new_rules — Did not add any rule or instruction that was not in the original",
+        "[scope·prog] h2.scope — Did not modify, add, or delete any file other than the target file (the root AGENTS.md included)",
+        "[procedure·judge] h2.counts — Reports the numbers of deleted, kept, and needs-decision items"
+      ]
+    }
+  ]
+}

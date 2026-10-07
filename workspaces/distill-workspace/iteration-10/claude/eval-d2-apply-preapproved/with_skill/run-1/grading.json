@@ -1,0 +1,138 @@
+{
+ "assertion_results": [
+  {
+   "text": "[outcome·judge] d2.recall — In the final file, at least 5 of residue R1–R6 have been stripped (stripping only the backstory while keeping the concluding sentence counts)",
+   "passed": true,
+   "evidence": "grok: PASS — All six residues are gone: R1/R2 backstory stripped to the conclusions, R3 NB, R4 format-guide.md, R6 ADR-0003, and the §5 skip-changelog duplicate removed. | codex: PASS — Final file strips all six residue items R1–R6.",
+   "id": "d2.recall",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d2.keep — Live rules K1–K5 all remain in the final file with their meaning intact",
+   "passed": true,
+   "evidence": "grok: PASS — K1 still has the tag-script WHY, K2 still has the double-publish reason and 'Only CI cuts tags', and K3–K5 (ADR-0007, LLM ban, security-patch exception) are unchanged. | codex: PASS — K1–K5 remain, including K1’s tag-script reason and K2’s CI warning and reason.",
+   "id": "d2.keep",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d2.conclusions — The concluding instructions of the stripped sentences (write in CHANGELOG.md, write in English, leave out skip-changelog PRs) remain in the final file",
+   "passed": true,
+   "evidence": "grok: PASS — Final file still says write in CHANGELOG.md, write in English, and 'Leave PRs labeled skip-changelog out of the notes.' | codex: PASS — Final file still says to write in CHANGELOG.md, write in English, and omit skip-changelog PRs.",
+   "id": "d2.conclusions",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d2.contradiction — Both R7 sentences remain, and the reply lists them as a conflicting or unclear item",
+   "passed": true,
+   "evidence": "grok: PASS — Both R7 lines remain, and the reply lists them under 'Needs your decision' as a contradiction. | codex: PASS — Both R7 timing sentences remain; the reply quotes them and identifies the conflict.",
+   "id": "d2.contradiction",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d2.no_new_rules — Did not add any rule or instruction that was not in the original",
+   "passed": true,
+   "evidence": "grok: PASS — Diff only rewrites the R1/R2 conclusions and deletes residue; the PR-title and format-guide ideas are marked 'not applied'. | codex: PASS — The diff only removes text or restates the existing location and language rules.",
+   "id": "d2.no_new_rules",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[scope·prog] d2.scope — Did not modify, add, or delete any file other than the target file",
+   "passed": true,
+   "evidence": "changed=['prompts/release-notes/SKILL.md'] commits=[]",
+   "id": "d2.scope",
+   "kind": "scope",
+   "check": "prog",
+   "votes": null,
+   "excluded": false
+  },
+  {
+   "text": "[procedure·judge] d2.counts — Reports the numbers of deleted, kept, and needs-decision items",
+   "passed": true,
+   "evidence": "grok: PASS — Reply reports 'Deleted 6 … Kept 13 · Needs decision 2'. | codex: PASS — The reply reports Deleted 6, Kept 13, and Needs decision 2.",
+   "id": "d2.counts",
+   "kind": "procedure",
+   "check": "judge",
+   "votes": {
+    "grok": true,
+    "codex": true
+   },
+   "excluded": false
+  }
+ ],
+ "summary": {
+  "passed": 7,
+  "failed": 0,
+  "total": 7,
+  "pass_rate": 1.0
+ },
+ "outcome_pass_rate": 1.0,
+ "safety_pass_rate": 1.0,
+ "procedure_pass_rate": 1.0,
+ "quality_score": {
+  "mean": 5.0,
+  "by_grader": {
+   "grok": 5,
+   "codex": 5
+  }
+ },
+ "counts": {
+  "grok": {
+   "residue_flagged": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6"
+   ],
+   "keep_violated": [],
+   "contradiction_preserved": true
+  },
+  "codex": {
+   "residue_flagged": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6"
+   ],
+   "keep_violated": [],
+   "contradiction_preserved": true
+  }
+ },
+ "graders": {
+  "grok": "grok-4.7",
+  "codex": "gpt-6-sol"
+ }
+}

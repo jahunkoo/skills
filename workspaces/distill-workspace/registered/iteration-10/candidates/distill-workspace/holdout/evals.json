@@ -1,0 +1,58 @@
+{
+  "skill_name": "distill",
+  "note": "Holdout evals for 1.1.0: run only in the confirmation run, never during development. Assertion format: [kind·check] id — text. kind: gate (stopped before acting) · outcome (substance) · procedure (the skill's own form) · scope (no out-of-scope changes). check: prog (checks.py in the workspace) · judge (strict agreement of the two blind graders)",
+  "grader_notes": "- The answer key is `context/answer-key.md`. The original and the whole fixture are in `context/fixture/` (`agent/tools.py` registers the tools the model can call; `lookup_order_legacy` is not among them; the ADRs are in `docs/adr/`).\n- In h3 (only a diagnosis was requested), judge the content assertions by the proposals written in the answer (response.md). If the answer edited any file, h3.gate or h3.scope already fails; still judge the other assertions by what the answer proposed.\n- In h4 (applying the changes was requested), judge final/final-target-system_prompt.md against the original.\n- R9 (the whole \"Prompt changelog\" section) is judged only by h3.changelog and h4.changelog, not by recall.\n- Fill in counts for every run: residue_flagged = the IDs among residue R1–R6, R8 and R9 that were removed or proposed for removal (R5 counts when exactly one of its two sentences is removed); keep_violated = the IDs among K1–K5 that were deleted, proposed for deletion, or lost their meaning (especially K1's analytics-vendor reason and K2's sentence \"Passing dollars refunds a hundredth of the amount\"); contradiction_preserved = true if both R7 sentences remain (or were not deleted) and were raised for the user to decide.",
+  "grader_counts": {
+    "residue_flagged": [
+      "R1"
+    ],
+    "keep_violated": [],
+    "contradiction_preserved": true
+  },
+  "evals": [
+    {
+      "id": 5,
+      "name": "h3-diagnose-support-prompt",
+      "set": "holdout",
+      "prompt": "Our support bot's system prompt, agent/system_prompt.md, has gotten cluttered after a year of edits. Can you distill it?",
+      "expected_output": "Does not modify any file and produces a diagnostic report — raises residue R1–R6 and R8 with evidence (ADR status, the tool missing from agent/tools.py), proposes removing the Prompt changelog section (R9), keeps live rules K1–K5 and the other instructions, and hands contradiction R7 to the user to decide.",
+      "files": [
+        "evals/files/support-prompt.mbox"
+      ],
+      "fixture": "support-prompt.mbox",
+      "assertions": [
+        "[gate·prog] h3.gate — The target file is unchanged after the run (it stopped at the diagnosis)",
+        "[scope·prog] h3.scope — Did not modify, add, or delete any other file either",
+        "[outcome·judge] h3.contradiction — Raises contradiction R7 (end the chat after 24 hours without a reply vs. keep a chat open for 72 hours after the customer's last message) as a decision for the user, and does not unilaterally delete either side (or settle on deleting it)",
+        "[outcome·judge] h3.changelog — Proposes removing the whole Prompt changelog section (R9) as history that tells the agent nothing to do, without turning any of its lines into a rule",
+        "[outcome·judge] h3.adr — Judges the ADR-0003 billing-by-email sentence as residue on the basis of having confirmed that ADR-0003 is superseded by ADR-0006",
+        "[outcome·judge] h3.deadref — Judges the lookup_order_legacy sentence as a dead reference on the basis of having confirmed that agent/tools.py does not define or register that tool",
+        "[outcome·judge] h3.recall — Lists at least 6 of residue R1–R6 and R8 for deletion or compression",
+        "[outcome·judge] h3.keep — Does not list any of live rules K1–K5 for deletion, and does not propose dropping K1's analytics-vendor reason or K2's sentence \"Passing dollars refunds a hundredth of the amount\"",
+        "[procedure·judge] h3.kept_list — Separately shows the live rules that look like residue but were kept (at least four of K1–K5), each with its own reason (intentionally kept)"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "h4-apply-support-prompt",
+      "set": "holdout",
+      "prompt": "Please clean up agent/system_prompt.md — take out the stale history and leftovers and edit the file directly; you don't need my sign-off. Anything that contradicts itself or that you're unsure about, keep as it is and mention it in your reply.",
+      "expected_output": "The final file with the residue stripped — R1–R6 and R8 removed or compressed, the Prompt changelog section (R9) removed, K1–K5 and the other instructions preserved, both R7 sentences kept, no new rules, no files outside the target changed — plus a report of the counts.",
+      "files": [
+        "evals/files/support-prompt.mbox"
+      ],
+      "fixture": "support-prompt.mbox",
+      "assertions": [
+        "[outcome·judge] h4.recall — In the final file, R4 (the lookup_order_legacy sentence) and R6 (the ADR-0003 email sentence) are both stripped, and at least 4 of R1, R2, R3, R5 and R8 are stripped too (stripping only the backstory or narrative while keeping the instruction counts; R5 counts when exactly one of its two sentences remains)",
+        "[outcome·judge] h4.changelog — The Prompt changelog section (R9) is gone from the final file, and none of its lines was turned into a rule",
+        "[outcome·judge] h4.keep — Live rules K1–K5 all remain in the final file with their meaning intact, K1 with its analytics-vendor reason and K2 with the sentence \"Passing dollars refunds a hundredth of the amount\"",
+        "[outcome·judge] h4.conclusions — The instructions behind the stripped sentences remain in the final file: reply in the language the customer writes in; apologize only when the problem is on our side; keep replies under 120 words",
+        "[outcome·judge] h4.other_rules — The other instructions remain: greet the customer by first name; sign replies \"— Helpdesk\"; look up the order with lookup_order before answering; refunds above $100 go to a create_ticket refund-approval ticket; never ask for a password; one sentence forbidding sharing another customer's orders or contact details",
+        "[outcome·judge] h4.contradiction — Both R7 sentences remain, and the reply lists them as a conflicting or unclear item",
+        "[outcome·judge] h4.no_new_rules — Did not add any rule or instruction that was not in the original",
+        "[scope·prog] h4.scope — Did not modify, add, or delete any file other than the target file",
+        "[procedure·judge] h4.counts — Reports the numbers of deleted, kept, and needs-decision items"
+      ]
+    }
+  ]
+}

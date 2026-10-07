@@ -1,0 +1,3 @@
+Distilled [the release-notes skill](prompts/release-notes/SKILL.md) from 41 lines to 16. It now follows the accepted PR-title ADR and keeps the release timing, review, security disclosure, and CI tagging rules. I removed the superseded guidance, broken link, duplicate rule, and conflicting instruction to write notes after tagging.
+
+The diff and repository reference checks passed. The skill validator could not run because PyYAML is not installed.

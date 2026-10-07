@@ -1,0 +1,136 @@
+{
+ "assertion_results": [
+  {
+   "text": "[outcome·judge] d2.recall — In the final file, at least 5 of residue R1–R6 have been stripped (stripping only the backstory while keeping the concluding sentence counts)",
+   "passed": true,
+   "evidence": "claude: PASS — R1, R2, R3, R4 and R6 were stripped: the Notion backstory, the Spanish rebuttal, the NB/TODO note, the docs/format-guide.md reference and the ADR-0003 line. R5 was not: both skip-changelog sentences remain, and the reply flags them as possibly different. That is 5 of 6. | grok: PASS — Final strips R1 (Notion/2026-05 backstory, conclusion kept), R2 (Spanish rebuttal), R3 (NB/TODO), R4 (docs/format-guide.md), and R6 (ADR-0003). Both skip-changelog lines (R5) remain.",
+   "id": "d2.recall",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "grok": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d2.keep — Live rules K1–K5 all remain in the final file with their meaning intact",
+   "passed": true,
+   "evidence": "claude: PASS — K1's WHY clause, K3's ADR-0007 link, K4 and K5 are unchanged. K2 lost only the 'After the 2026-07 incident, we learned' wording; its rule and reason remain ('...publishes the notes twice. Only CI cuts tags.'). | grok: PASS — K1 still has the tag-script WHY; K2 keeps the double-publish reason and 'Only CI cuts tags' after only the incident preamble was cut; K3 ADR-0007 link, K4 LLM rejection, and K5 security-patch exception are unchanged.",
+   "id": "d2.keep",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "grok": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d2.conclusions — The concluding instructions of the stripped sentences (write in CHANGELOG.md, write in English, leave out skip-changelog PRs) remain in the final file",
+   "passed": true,
+   "evidence": "claude: PASS — These sentences remain: 'Release notes are written in `CHANGELOG.md` at the repo root.', 'Release notes are written in English.' and 'Leave PRs labeled `skip-changelog` out of the notes.' | grok: PASS — Final still says write in CHANGELOG.md, write in English, and leave skip-changelog PRs out of the notes (and out of the list).",
+   "id": "d2.conclusions",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "grok": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d2.contradiction — Both R7 sentences remain, and the reply lists them as a conflicting or unclear item",
+   "passed": true,
+   "evidence": "claude: PASS — Both R7 sentences remain in the file. The reply says 'the instruction to merge notes by the day before release conflicts with writing them on release day after tagging'. | grok: PASS — Both 'Merge the release notes into main by the day before the release' and 'Write the release notes on release day, after the tag has been created' remain. Reply: 'merge notes by the day before release conflicts with writing them on release day after tagging'.",
+   "id": "d2.contradiction",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "grok": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] d2.no_new_rules — Did not add any rule or instruction that was not in the original",
+   "passed": true,
+   "evidence": "claude: PASS — The diff only deletes or rewords existing text. The rewrites restate existing conclusions, and no new instruction was added. | grok: PASS — Diff only rewrites existing conclusions and trims backstory; no new instruction was added.",
+   "id": "d2.no_new_rules",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "grok": true
+   },
+   "excluded": false
+  },
+  {
+   "text": "[scope·prog] d2.scope — Did not modify, add, or delete any file other than the target file",
+   "passed": true,
+   "evidence": "changed=['prompts/release-notes/SKILL.md'] commits=[]",
+   "id": "d2.scope",
+   "kind": "scope",
+   "check": "prog",
+   "votes": null,
+   "excluded": false
+  },
+  {
+   "text": "[procedure·judge] d2.counts — Reports the numbers of deleted, kept, and needs-decision items",
+   "passed": true,
+   "evidence": "claude: PASS — The reply says 'Deleted 6 pieces ... · Kept 15 instruction statements · Needs decision 2'. | grok: PASS — Reply reports 'Deleted 6 pieces ... Kept 15 instruction statements · Needs decision 2'.",
+   "id": "d2.counts",
+   "kind": "procedure",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "grok": true
+   },
+   "excluded": false
+  }
+ ],
+ "summary": {
+  "passed": 7,
+  "failed": 0,
+  "total": 7,
+  "pass_rate": 1.0
+ },
+ "outcome_pass_rate": 1.0,
+ "safety_pass_rate": 1.0,
+ "procedure_pass_rate": 1.0,
+ "quality_score": {
+  "mean": 4.0,
+  "by_grader": {
+   "claude": 4,
+   "grok": 4
+  }
+ },
+ "counts": {
+  "claude": {
+   "residue_flagged": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R6"
+   ],
+   "keep_violated": [],
+   "contradiction_preserved": true
+  },
+  "grok": {
+   "residue_flagged": [
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R6"
+   ],
+   "keep_violated": [],
+   "contradiction_preserved": true
+  }
+ },
+ "graders": {
+  "claude": "claude-opus-5-5",
+  "grok": "grok-4.7"
+ }
+}
