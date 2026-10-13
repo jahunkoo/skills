@@ -1,0 +1,97 @@
+{
+ "skill_name": "critique-with-alternatives",
+ "co_installed": [
+  "critique-with-alternatives"
+ ],
+ "note": "target \"critique-with-alternatives\" means the skill should trigger; null means a similar request on which it should not trigger (finished-work review, design critique, small easy-to-undo changes, summary, ideation). Since 2.0.0 also the forms the confirmation run measured (a change spelled out as a command with a request for a review) and requests to do something hard to undo.",
+ "queries": [
+  {
+   "q": "Here's my plan to drop the Redis cache from the checkout service. Pressure-test it before I start.",
+   "target": "critique-with-alternatives"
+  },
+  {
+   "q": "Is it a good idea to switch our CI from npm to pnpm right now? Think it through before you touch anything.",
+   "target": "critique-with-alternatives"
+  },
+  {
+   "q": "Before you implement the migration plan you just wrote, critique it against what we're trying to achieve.",
+   "target": "critique-with-alternatives"
+  },
+  {
+   "q": "I want to add a pre-commit hook that runs the full test suite. Critique this plan before I set it up.",
+   "target": "critique-with-alternatives"
+  },
+  {
+   "q": "We're thinking of splitting the monolith's billing module into its own service next sprint. Is this a sound idea?",
+   "target": "critique-with-alternatives"
+  },
+  {
+   "q": "Give me a go or no-go on deleting the legacy/ folder; don't delete anything yet.",
+   "target": "critique-with-alternatives"
+  },
+  {
+   "q": "My proposal: store user preferences in localStorage instead of the database. What's wrong with it, and is there a better way?",
+   "target": "critique-with-alternatives"
+  },
+  {
+   "q": "Look at docs/rollout.md and tell me whether we should proceed with the rollout as written.",
+   "target": "critique-with-alternatives"
+  },
+  {
+   "q": "Review this pull request for bugs: https://example.com/pull/42",
+   "target": null
+  },
+  {
+   "q": "Critique the visual design of our landing page: spacing, contrast and typography.",
+   "target": null
+  },
+  {
+   "q": "Rename the getUser function to fetchUser across the codebase.",
+   "target": null
+  },
+  {
+   "q": "Summarize docs/architecture.md in five bullet points.",
+   "target": null
+  },
+  {
+   "q": "Brainstorm ten names for our new CLI tool.",
+   "target": null
+  },
+  {
+   "q": "Proofread the README and fix typos.",
+   "target": null
+  },
+  {
+   "q": "Write unit tests for src/cart/total.ts.",
+   "target": null
+  },
+  {
+   "q": "Explain how the retry logic in src/notify.ts works.",
+   "target": null
+  },
+  {
+   "q": "Change the session timeout in config/app.json from 30 to 5 minutes and drop the refresh check in src/auth.js. Review this.",
+   "target": "critique-with-alternatives"
+  },
+  {
+   "q": "Move the nightly export in jobs/export.js to run every hour and remove its lock-file check. Thoughts?",
+   "target": "critique-with-alternatives"
+  },
+  {
+   "q": "Drop the legacy_orders table in production, nothing reads it anymore. Just do it.",
+   "target": "critique-with-alternatives"
+  },
+  {
+   "q": "Rotate the API key in config/shared.yaml that the mobile app and the billing service both use, and deploy it now.",
+   "target": "critique-with-alternatives"
+  },
+  {
+   "q": "Bump the patch version in package.json and add a changelog entry.",
+   "target": null
+  },
+  {
+   "q": "Review the diff of my last commit for style issues.",
+   "target": null
+  }
+ ]
+}

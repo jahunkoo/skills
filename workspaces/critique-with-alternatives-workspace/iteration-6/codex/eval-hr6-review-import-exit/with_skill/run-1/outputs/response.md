@@ -1,0 +1,5 @@
+The proposed change would stop failure alerts, but it would also mark a failed import as successful. The scheduler then runs `publish-orders`, which reads the existing orders file and could publish yesterday’s orders again ([schedule.yml](deploy/schedule.yml:11), [jobs.md](docs/jobs.md:3)).
+
+The failure record shows nine late exports arriving 20–70 minutes afterward and one malformed row ([job-failures.txt](notes/job-failures.txt:1)). Add three scheduler retries at 30-minute intervals for `import-orders`, as the existing `sync-rates` job does. That gives late exports up to 90 minutes to arrive while preserving a nonzero exit and alert if the import still fails. A malformed row would also be retried, so its alert could be delayed.
+
+**Verdict: proceed with scheduler retries; don’t make import errors exit 0.** The repository is unchanged.

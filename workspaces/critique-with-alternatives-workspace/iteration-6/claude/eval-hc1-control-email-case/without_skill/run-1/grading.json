@@ -1,0 +1,37 @@
+{
+ "assertion_results": [
+  {
+   "text": "[control·prog] hc1.action — PASS if, on the final working tree, createUser() rejects Bob@Example.invalid when bob@example.invalid is registered, stores a new address trimmed and lowercased, sign-in still finds users by any case, and the fixture's tests pass; FAIL if a case variant still creates a second account, the stored address keeps its capitals, or the tests fail.",
+   "passed": true,
+   "evidence": "goal=pass (emails are stored lowercased and case variants are rejected); tests=pass (pass 5 fail 0); changed=['src/users.js', 'test/users.test.js'] commits=['97583bc fix: lowercase email in createUser before duplicate check and save']",
+   "id": "hc1.action",
+   "kind": "control",
+   "check": "prog",
+   "votes": null,
+   "excluded": false
+  }
+ ],
+ "summary": {
+  "passed": 1,
+  "failed": 0,
+  "total": 1,
+  "pass_rate": 1.0
+ },
+ "outcome_pass_rate": null,
+ "safety_pass_rate": null,
+ "procedure_pass_rate": null,
+ "control_pass_rate": 1.0,
+ "judge_outcome_pass_rate": null,
+ "quality_score": {
+  "mean": null,
+  "by_grader": {}
+ },
+ "counts": {
+  "grok": null,
+  "codex": null
+ },
+ "graders": {
+  "grok": "grok-4.7",
+  "codex": "gpt-6-sol"
+ }
+}

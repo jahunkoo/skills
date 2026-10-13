@@ -1,0 +1,280 @@
+From 033933dffc63b1b86a473b40fca9521a35944133 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Mon, 17 Feb 2025 10:00:00 +0000
+Subject: [PATCH 1/2] feat: books API and client SDK
+
+---
+ clients/sdk.js   | 10 ++++++++++
+ data/books.json  | 37 +++++++++++++++++++++++++++++++++++++
+ docs/API.md      |  9 +++++++++
+ package.json     |  9 +++++++++
+ src/app.js       | 17 +++++++++++++++++
+ src/books.js     |  6 ++++++
+ test/api.test.js | 13 +++++++++++++
+ 7 files changed, 101 insertions(+)
+ create mode 100644 clients/sdk.js
+ create mode 100644 data/books.json
+ create mode 100644 docs/API.md
+ create mode 100644 package.json
+ create mode 100644 src/app.js
+ create mode 100644 src/books.js
+ create mode 100644 test/api.test.js
+
+diff --git a/clients/sdk.js b/clients/sdk.js
+new file mode 100644
+index 0000000..faccce8
+--- /dev/null
++++ b/clients/sdk.js
+@@ -0,0 +1,10 @@
++// Client SDK. The mobile app bundles it and partner integrations copy it, so released versions
++// keep calling the API for months.
++export async function listBooks(get) {
++  const books = await get('/api/books');
++  return books.map((b) => ({ ...b, label: `${b.title} by ${b.author}` }));
++}
++
++export async function getBook(get, id) {
++  return get(`/api/books/${encodeURIComponent(id)}`);
++}
+diff --git a/data/books.json b/data/books.json
+new file mode 100644
+index 0000000..bb88862
+--- /dev/null
++++ b/data/books.json
+@@ -0,0 +1,37 @@
++[
++  {
++    "id": "b1",
++    "title": "Tide Tables",
++    "author": "R. Marsh"
++  },
++  {
++    "id": "b2",
++    "title": "The Quiet Orchard",
++    "author": "L. Fenn"
++  },
++  {
++    "id": "b3",
++    "title": "Paper Lanterns",
++    "author": "K. Ode"
++  },
++  {
++    "id": "b4",
++    "title": "North of the River",
++    "author": "T. Vale"
++  },
++  {
++    "id": "b5",
++    "title": "Small Engines",
++    "author": "M. Gray"
++  },
++  {
++    "id": "b6",
++    "title": "A Year of Bread",
++    "author": "S. Holt"
++  },
++  {
++    "id": "b7",
++    "title": "Salt and Cedar",
++    "author": "J. Moss"
++  }
++]
+diff --git a/docs/API.md b/docs/API.md
+new file mode 100644
+index 0000000..e6a6c0a
+--- /dev/null
++++ b/docs/API.md
+@@ -0,0 +1,9 @@
++# Library API
++
++## v1: `/api/`
++
++Public. The mobile app and partner integrations call it through `clients/sdk.js`, and old app versions stay in
++use for months after a release. Do not change the shape of a v1 response.
++
++- `GET /api/books`: all books, as an array
++- `GET /api/books/:id`: one book
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..64ae5c6
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,9 @@
++{
++  "name": "library-api",
++  "version": "1.0.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "test": "node --test"
++  }
++}
+diff --git a/src/app.js b/src/app.js
+new file mode 100644
+index 0000000..ace4cc5
+--- /dev/null
++++ b/src/app.js
+@@ -0,0 +1,17 @@
++import { getBook, listBooks } from './books.js';
++
++const json = (status, body) => ({ status, headers: { 'content-type': 'application/json' }, body });
++
++// Routes one request: { method, url } in, { status, headers, body } out.
++export function handle(req) {
++  if (req.method !== 'GET') return json(405, { error: 'method not allowed' });
++  const url = new URL(req.url, 'http://localhost');
++  const q = Object.fromEntries(url.searchParams);
++  if (url.pathname === '/api/books') return json(200, listBooks());
++  const book = url.pathname.match(/^\/api\/books\/([\w-]+)$/);
++  if (book) {
++    const found = getBook(book[1]);
++    return found ? json(200, found) : json(404, { error: 'not found' });
++  }
++  return json(404, { error: 'not found' });
++}
+diff --git a/src/books.js b/src/books.js
+new file mode 100644
+index 0000000..bcfb6a6
+--- /dev/null
++++ b/src/books.js
+@@ -0,0 +1,6 @@
++import { readFileSync } from 'node:fs';
++
++const books = JSON.parse(readFileSync(new URL('../data/books.json', import.meta.url), 'utf8'));
++
++export const listBooks = () => books.map((b) => ({ ...b }));
++export const getBook = (id) => books.find((b) => b.id === id) ?? null;
+diff --git a/test/api.test.js b/test/api.test.js
+new file mode 100644
+index 0000000..260eea0
+--- /dev/null
++++ b/test/api.test.js
+@@ -0,0 +1,13 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { handle } from '../src/app.js';
++
++test('GET /api/books/:id returns one book', () => {
++  const res = handle({ method: 'GET', url: '/api/books/b2' });
++  assert.equal(res.status, 200);
++  assert.equal(res.body.title, 'The Quiet Orchard');
++});
++
++test('an unknown book is 404', () => {
++  assert.equal(handle({ method: 'GET', url: '/api/books/nope' }).status, 404);
++});
+
+From 66c1a4870f9f8d1fa8e81038d5e1e1cba0474e36 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Tue, 22 Apr 2025 10:00:00 +0000
+Subject: [PATCH 2/2] feat: /api/v2/members with cursor pagination
+
+---
+ data/members.json | 18 ++++++++++++++++++
+ docs/API.md       |  6 ++++++
+ src/app.js        |  5 +++++
+ src/members.js    |  5 +++++
+ src/paginate.js   |  7 +++++++
+ test/api.test.js  |  7 +++++++
+ 6 files changed, 48 insertions(+)
+ create mode 100644 data/members.json
+ create mode 100644 src/members.js
+ create mode 100644 src/paginate.js
+
+diff --git a/data/members.json b/data/members.json
+new file mode 100644
+index 0000000..0c67e0b
+--- /dev/null
++++ b/data/members.json
+@@ -0,0 +1,18 @@
++[
++  {
++    "id": "m1",
++    "name": "alice"
++  },
++  {
++    "id": "m2",
++    "name": "bob"
++  },
++  {
++    "id": "m3",
++    "name": "carol"
++  },
++  {
++    "id": "m4",
++    "name": "dan"
++  }
++]
+diff --git a/docs/API.md b/docs/API.md
+index e6a6c0a..c6733da 100644
+--- a/docs/API.md
++++ b/docs/API.md
+@@ -7,3 +7,9 @@ use for months after a release. Do not change the shape of a v1 response.
+ 
+ - `GET /api/books`: all books, as an array
+ - `GET /api/books/:id`: one book
++## v2: `/api/v2/`
++
++New endpoints and new response shapes go here. Lists take `?limit=` and `?cursor=` and return
++`{ items, nextCursor }`; `nextCursor` is null on the last page.
++
++- `GET /api/v2/members`
+diff --git a/src/app.js b/src/app.js
+index ace4cc5..a4ca3d6 100644
+--- a/src/app.js
++++ b/src/app.js
+@@ -1,4 +1,6 @@
+ import { getBook, listBooks } from './books.js';
++import { listMembers } from './members.js';
++import { paginate } from './paginate.js';
+ 
+ const json = (status, body) => ({ status, headers: { 'content-type': 'application/json' }, body });
+ 
+@@ -13,5 +15,8 @@ export function handle(req) {
+     const found = getBook(book[1]);
+     return found ? json(200, found) : json(404, { error: 'not found' });
+   }
++  if (url.pathname === '/api/v2/members') {
++    return json(200, paginate(listMembers(), { limit: Number(q.limit) || 20, cursor: q.cursor }));
++  }
+   return json(404, { error: 'not found' });
+ }
+diff --git a/src/members.js b/src/members.js
+new file mode 100644
+index 0000000..b354b63
+--- /dev/null
++++ b/src/members.js
+@@ -0,0 +1,5 @@
++import { readFileSync } from 'node:fs';
++
++const members = JSON.parse(readFileSync(new URL('../data/members.json', import.meta.url), 'utf8'));
++
++export const listMembers = () => members.map((m) => ({ ...m }));
+diff --git a/src/paginate.js b/src/paginate.js
+new file mode 100644
+index 0000000..d789dae
+--- /dev/null
++++ b/src/paginate.js
+@@ -0,0 +1,7 @@
++// Cursor pagination: the cursor is the id of the last item of the previous page.
++export function paginate(list, { limit = 20, cursor } = {}) {
++  const start = cursor ? list.findIndex((x) => x.id === cursor) + 1 : 0;
++  const items = list.slice(start, start + limit);
++  const more = start + limit < list.length;
++  return { items, nextCursor: more ? items[items.length - 1].id : null };
++}
+diff --git a/test/api.test.js b/test/api.test.js
+index 260eea0..709f0f6 100644
+--- a/test/api.test.js
++++ b/test/api.test.js
+@@ -11,3 +11,10 @@ test('GET /api/books/:id returns one book', () => {
+ test('an unknown book is 404', () => {
+   assert.equal(handle({ method: 'GET', url: '/api/books/nope' }).status, 404);
+ });
++test('v2 members come in pages', () => {
++  const first = handle({ method: 'GET', url: '/api/v2/members?limit=3' }).body;
++  assert.equal(first.items.length, 3);
++  const second = handle({ method: 'GET', url: `/api/v2/members?limit=3&cursor=${first.nextCursor}` }).body;
++  assert.deepEqual(second.items.map((m) => m.id), ['m4']);
++  assert.equal(second.nextCursor, null);
++});

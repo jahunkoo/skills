@@ -6,6 +6,12 @@
   },
   "plugins": [
     {
+      "name": "critique-with-alternatives",
+      "source": "./plugins/critique-with-alternatives",
+      "description": "Reviews a plan or a risky request against your repository before anything runs, and hands back a better way for each flaw it finds. When you ask for a review, it stops at the review instead of making the change.",
+      "version": "2.0.0"
+    },
+    {
       "name": "distill",
       "source": "./plugins/distill",
       "description": "Removes outdated history from agent instructions, keeping only what the agent should do now. Reports first and edits only after you approve.",

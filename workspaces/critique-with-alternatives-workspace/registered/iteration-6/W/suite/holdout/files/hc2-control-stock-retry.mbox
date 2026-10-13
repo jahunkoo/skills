@@ -1,0 +1,162 @@
+From d6d485ad72a91b0f00ba1b40a6c2b62db937faec Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Mon, 2 Jun 2025 07:00:00 +0000
+Subject: [PATCH 1/2] feat: nightly stock sync to the warehouse
+
+---
+ docs/warehouse-api.md |  5 +++++
+ package.json          |  9 +++++++++
+ src/sync.js           | 14 ++++++++++++++
+ src/warehouse.js      |  8 ++++++++
+ test/sync.test.js     | 15 +++++++++++++++
+ 5 files changed, 51 insertions(+)
+ create mode 100644 docs/warehouse-api.md
+ create mode 100644 package.json
+ create mode 100644 src/sync.js
+ create mode 100644 src/warehouse.js
+ create mode 100644 test/sync.test.js
+
+diff --git a/docs/warehouse-api.md b/docs/warehouse-api.md
+new file mode 100644
+index 0000000..57e6a83
+--- /dev/null
++++ b/docs/warehouse-api.md
+@@ -0,0 +1,5 @@
++# Warehouse API
++
++- `PUT /stock/:sku` with `{ "quantity": n }` sets the absolute stock level. Repeating a request is safe.
++- The API restarts for deploys several times a week and answers 503 for a few seconds.
++- Limit: 600 requests per minute. The nightly sync sends about 40.
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..f1d37f2
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,9 @@
++{
++  "name": "stock-sync",
++  "version": "1.0.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "test": "node --test"
++  }
++}
+diff --git a/src/sync.js b/src/sync.js
+new file mode 100644
+index 0000000..95735b4
+--- /dev/null
++++ b/src/sync.js
+@@ -0,0 +1,14 @@
++import { setStock } from './warehouse.js';
++
++// Pushes every level; a SKU that fails is reported and the rest carry on.
++export async function syncAll(send, levels) {
++  const failed = [];
++  for (const [sku, quantity] of Object.entries(levels)) {
++    try {
++      await setStock(send, sku, quantity);
++    } catch {
++      failed.push(sku);
++    }
++  }
++  return { synced: Object.keys(levels).length - failed.length, failed };
++}
+diff --git a/src/warehouse.js b/src/warehouse.js
+new file mode 100644
+index 0000000..48e39f4
+--- /dev/null
++++ b/src/warehouse.js
+@@ -0,0 +1,8 @@
++// Client for the warehouse API. `send(request)` resolves to { status, body }.
++// PUT /stock/:sku sets the absolute level, so sending the same request twice leaves the same level.
++export async function setStock(send, sku, quantity) {
++  const res = await send({ method: 'PUT', path: `/stock/${sku}`, body: { quantity } });
++  if (res.status === 503) throw Object.assign(new Error(`warehouse unavailable for ${sku}`), { code: 'UNAVAILABLE' });
++  if (res.status >= 400) throw new Error(`warehouse answered ${res.status} for ${sku}`);
++  return res.body;
++}
+diff --git a/test/sync.test.js b/test/sync.test.js
+new file mode 100644
+index 0000000..63036af
+--- /dev/null
++++ b/test/sync.test.js
+@@ -0,0 +1,15 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { syncAll } from '../src/sync.js';
++
++test('pushes every level', async () => {
++  const stock = {};
++  const send = async ({ path, body }) => { stock[path.split('/').pop()] = body.quantity; return { status: 200, body }; };
++  assert.deepEqual(await syncAll(send, { a: 1, b: 2 }), { synced: 2, failed: [] });
++  assert.deepEqual(stock, { a: 1, b: 2 });
++});
++
++test('a rejected SKU is reported and the rest carry on', async () => {
++  const send = async ({ path }) => (path.endsWith('/bad') ? { status: 404 } : { status: 200, body: {} });
++  assert.deepEqual(await syncAll(send, { bad: 1, good: 2 }), { synced: 1, failed: ['bad'] });
++});
+
+From b1edf8eea7204c0649620aa09a096872f20a348d Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Mon, 30 Jun 2025 07:00:00 +0000
+Subject: [PATCH 2/2] feat: retry helper, used for the catalog pull
+
+---
+ src/catalog.js       |  9 +++++++++
+ src/retry.js         | 12 ++++++++++++
+ test/catalog.test.js |  9 +++++++++
+ 3 files changed, 30 insertions(+)
+ create mode 100644 src/catalog.js
+ create mode 100644 src/retry.js
+ create mode 100644 test/catalog.test.js
+
+diff --git a/src/catalog.js b/src/catalog.js
+new file mode 100644
+index 0000000..bd57eee
+--- /dev/null
++++ b/src/catalog.js
+@@ -0,0 +1,9 @@
++import { withRetry } from './retry.js';
++
++export async function pullCatalog(send) {
++  return withRetry(async () => {
++    const res = await send({ method: 'GET', path: '/catalog' });
++    if (res.status === 503) throw Object.assign(new Error('warehouse unavailable'), { code: 'UNAVAILABLE' });
++    return res.body;
++  });
++}
+diff --git a/src/retry.js b/src/retry.js
+new file mode 100644
+index 0000000..ea230a3
+--- /dev/null
++++ b/src/retry.js
+@@ -0,0 +1,12 @@
++// Calls fn until it succeeds, at most `attempts` times, waiting a little longer each time.
++// Only errors for which isRetryable(err) is true are retried.
++export async function withRetry(fn, { attempts = 3, delayMs = 200, isRetryable = (err) => err.code === 'UNAVAILABLE' || err.code === 'ETIMEDOUT' } = {}) {
++  for (let attempt = 1; ; attempt++) {
++    try {
++      return await fn();
++    } catch (err) {
++      if (attempt >= attempts || !isRetryable(err)) throw err;
++      await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
++    }
++  }
++}
+diff --git a/test/catalog.test.js b/test/catalog.test.js
+new file mode 100644
+index 0000000..6eef340
+--- /dev/null
++++ b/test/catalog.test.js
+@@ -0,0 +1,9 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { pullCatalog } from '../src/catalog.js';
++
++test('the catalog pull survives a short outage', async () => {
++  let calls = 0;
++  const send = async () => (++calls < 2 ? { status: 503 } : { status: 200, body: ['a'] });
++  assert.deepEqual(await pullCatalog(send), ['a']);
++});

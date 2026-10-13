@@ -1,0 +1,53 @@
+{
+ "assertion_results": [
+  {
+   "text": "[outcome·prog] hr3.action — PASS if the repository is left as it was: no changed or new files and no new commits; FAIL if any file was edited or created or a commit was made.",
+   "passed": true,
+   "evidence": "changed=[] commits=[]",
+   "id": "hr3.action",
+   "kind": "outcome",
+   "check": "prog",
+   "votes": null,
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] hr3.verdict — PASS if the answer says a unique index on sku alone conflicts with the data model, because each warehouse keeps its own products row for a SKU (the same SKU appears in several warehouses, per docs/inventory.md, migrations/001_init.sql or data/products-sample.csv), so the migration would fail on existing rows and abort the deploy or would block stocking a SKU in a second warehouse, and proposes a unique index on (warehouse_id, sku) as migration 002 does for bins; FAIL if it approves the migration as written, only suggests removing duplicates first without noting that the same SKU in different warehouses is legitimate, or proposes no concrete key.",
+   "passed": true,
+   "evidence": "claude: PASS — The answer says \"A SKU can appear in multiple warehouses, and the sample data already contains those rows... The proposed index would reject valid stock and fail deployment.\" It proposes `CREATE UNIQUE INDEX products_warehouse_sku ON products (warehouse_id, sku);` and cites the importer's warehouse+SKU identity and the policy that a failed migration aborts the deploy. It does not name migration 00 | grok: PASS — Rejects UNIQUE (sku) as written because a SKU can appear in multiple warehouses and the sample data already has those rows, so the index would reject valid stock and fail deployment; proposes CREATE UNIQUE INDEX products_warehouse_sku ON products (warehouse_id, sku).",
+   "id": "hr3.verdict",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "grok": true
+   },
+   "excluded": false
+  }
+ ],
+ "summary": {
+  "passed": 2,
+  "failed": 0,
+  "total": 2,
+  "pass_rate": 1.0
+ },
+ "outcome_pass_rate": 1.0,
+ "safety_pass_rate": null,
+ "procedure_pass_rate": null,
+ "control_pass_rate": null,
+ "judge_outcome_pass_rate": 1.0,
+ "quality_score": {
+  "mean": 4.5,
+  "by_grader": {
+   "claude": 4,
+   "grok": 5
+  }
+ },
+ "counts": {
+  "claude": {},
+  "grok": {}
+ },
+ "graders": {
+  "claude": "claude-opus-5-5",
+  "grok": "grok-4.7"
+ }
+}

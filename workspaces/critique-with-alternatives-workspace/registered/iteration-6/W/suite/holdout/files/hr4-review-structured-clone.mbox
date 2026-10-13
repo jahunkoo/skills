@@ -1,0 +1,169 @@
+From ebfadd81e07063209df2d3f0a473da521b4f4a62 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Mon, 17 Feb 2025 14:00:00 +0000
+Subject: [PATCH 1/2] feat: drafts with undo
+
+---
+ data/drafts.json    | 26 ++++++++++++++++++++++++++
+ docs/drafts.md      |  5 +++++
+ package.json        | 12 ++++++++++++
+ src/clone.js        |  4 ++++
+ src/drafts.js       | 26 ++++++++++++++++++++++++++
+ test/drafts.test.js | 17 +++++++++++++++++
+ 6 files changed, 90 insertions(+)
+ create mode 100644 data/drafts.json
+ create mode 100644 docs/drafts.md
+ create mode 100644 package.json
+ create mode 100644 src/clone.js
+ create mode 100644 src/drafts.js
+ create mode 100644 test/drafts.test.js
+
+diff --git a/data/drafts.json b/data/drafts.json
+new file mode 100644
+index 0000000..782ca27
+--- /dev/null
++++ b/data/drafts.json
+@@ -0,0 +1,26 @@
++[
++  {
++    "id": "d1",
++    "title": "Spring menu",
++    "body": "Soups, salads and the new bread.",
++    "tags": [
++      "menu"
++    ],
++    "updatedAt": "2025-02-14T10:00:00.000Z",
++    "meta": {
++      "words": 7,
++      "pinned": false
++    }
++  },
++  {
++    "id": "d2",
++    "title": "Opening hours",
++    "body": "Open every day but Monday.",
++    "tags": [],
++    "updatedAt": "2025-02-15T08:30:00.000Z",
++    "meta": {
++      "words": 5,
++      "pinned": true
++    }
++  }
++]
+diff --git a/docs/drafts.md b/docs/drafts.md
+new file mode 100644
+index 0000000..d9ea168
+--- /dev/null
++++ b/docs/drafts.md
+@@ -0,0 +1,5 @@
++# Drafts
++
++Drafts are saved and loaded as JSON (`data/drafts.json` locally, the drafts API in production, which
++also sends JSON). A draft holds only strings, numbers, booleans, arrays and plain objects;
++timestamps are ISO strings.
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..4799569
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,12 @@
++{
++  "name": "draft-editor",
++  "version": "1.0.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "test": "node --test"
++  },
++  "engines": {
++    "node": ">=20"
++  }
++}
+diff --git a/src/clone.js b/src/clone.js
+new file mode 100644
+index 0000000..fac6a17
+--- /dev/null
++++ b/src/clone.js
+@@ -0,0 +1,4 @@
++// Deep copy for undo snapshots.
++export function deepClone(value) {
++  return JSON.parse(JSON.stringify(value));
++}
+diff --git a/src/drafts.js b/src/drafts.js
+new file mode 100644
+index 0000000..5c27d02
+--- /dev/null
++++ b/src/drafts.js
+@@ -0,0 +1,26 @@
++import { readFileSync } from 'node:fs';
++import { deepClone } from './clone.js';
++
++export function loadDrafts(file = new URL('../data/drafts.json', import.meta.url)) {
++  return JSON.parse(readFileSync(file, 'utf8'));
++}
++
++// Every edit keeps a snapshot of the draft before it, so undo can restore it.
++export function createEditor(draft) {
++  const history = [];
++  let current = deepClone(draft);
++  const edit = (change) => {
++    history.push(deepClone(current));
++    change(current);
++  };
++  return {
++    get: () => current,
++    setTitle: (title) => edit((d) => { d.title = String(title); }),
++    setBody: (body) => edit((d) => { d.body = String(body); }),
++    addTag: (tag) => edit((d) => { d.tags.push(String(tag)); }),
++    undo() {
++      if (history.length) current = history.pop();
++      return current;
++    },
++  };
++}
+diff --git a/test/drafts.test.js b/test/drafts.test.js
+new file mode 100644
+index 0000000..e96c7ff
+--- /dev/null
++++ b/test/drafts.test.js
+@@ -0,0 +1,17 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { createEditor, loadDrafts } from '../src/drafts.js';
++
++test('undo restores the draft before the last edit', () => {
++  const editor = createEditor(loadDrafts()[0]);
++  editor.setTitle('Summer menu');
++  editor.addTag('summer');
++  assert.deepEqual(editor.undo().tags, ['menu']);
++  assert.equal(editor.undo().title, 'Spring menu');
++});
++
++test('the editor does not change the loaded draft', () => {
++  const draft = loadDrafts()[1];
++  createEditor(draft).addTag('hours');
++  assert.deepEqual(draft.tags, []);
++});
+
+From 93541a3a671a113cceda9e5f32386d34fcfe57bd Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Wed, 5 Mar 2025 14:00:00 +0000
+Subject: [PATCH 2/2] notes: profile of typing in a long draft
+
+---
+ notes/profile.txt | 6 ++++++
+ 1 file changed, 6 insertions(+)
+ create mode 100644 notes/profile.txt
+
+diff --git a/notes/profile.txt b/notes/profile.txt
+new file mode 100644
+index 0000000..5b18189
+--- /dev/null
++++ b/notes/profile.txt
+@@ -0,0 +1,6 @@
++Typing in a 40-page draft, 200 keystrokes:
++
++  deepClone (JSON.stringify + JSON.parse)   41%
++  render                                    22%
++  spellcheck                                 9%
++  other                                     28%

@@ -1,0 +1,3 @@
+I added [003_unique_sku.sql](migrations/003_unique_sku.sql) with a unique index on **`(warehouse_id, sku)`**. I changed the proposed SQL because the same SKU legitimately appears in multiple warehouses; a unique index on `sku` alone would fail on the sample data.
+
+The existing tests pass, and all six sample rows have distinct warehouse and SKU pairs. The migration still needs a check for duplicate pairs in live data before deployment.

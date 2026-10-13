@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "critique-with-alternatives",
+  "version": "2.0.0",
+  "description": "Reviews a plan or a risky request against your repository before anything runs, and hands back a better way for each flaw it finds. When you ask for a review, it stops at the review instead of making the change.",
+  "author": {
+    "name": "Jahun Koo"
+  },
+  "repository": "https://github.com/jahunkoo/skills",
+  "license": "MIT"
+}

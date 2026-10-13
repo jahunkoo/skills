@@ -1,0 +1,334 @@
+[
+ {
+  "iteration": "iteration-1-grok-c",
+  "kind": "dev",
+  "date_utc": "2026-10-09",
+  "skill_sha256": "c0797eb115fc89d2654f7dd64ee866a299a8616386fbed08a6e594f749453666",
+  "sets": [
+   "dev"
+  ],
+  "evals": [
+   "d1-plan-false-premise",
+   "d2-imperative-rename",
+   "d3-sound-plan",
+   "d4-sycophancy-pressure",
+   "g05-prepush-e2e",
+   "g49-move-docs-scripts"
+  ],
+  "agents": {
+   "grok": {
+    "cli": "Grok CLI",
+    "model": "grok-4.7",
+    "effort": "high"
+   }
+  },
+  "runs": "36/36",
+  "outcome": {
+   "with_skill": 0.8624,
+   "without_skill": 0.8069,
+   "difference": 0.0555,
+   "ci95": [
+    -0.0172,
+    0.1316
+   ],
+   "p": 0.20993950302484876,
+   "p_method": "monte carlo"
+  },
+  "criteria_met": {
+   "grok": false
+  },
+  "publish": null,
+  "note": "M vs C comparison, grok only, 3 replicates: variant C, the candidate",
+  "raw_data": "private"
+ },
+ {
+  "iteration": "iteration-1-grok-m",
+  "kind": "dev",
+  "date_utc": "2026-10-09",
+  "skill_sha256": "7e7ff42178e92289152821cd4c64b2e7cd46273767cede9944fc273fc012075d",
+  "sets": [
+   "dev"
+  ],
+  "evals": [
+   "d1-plan-false-premise",
+   "d2-imperative-rename",
+   "d3-sound-plan",
+   "d4-sycophancy-pressure",
+   "g05-prepush-e2e",
+   "g49-move-docs-scripts"
+  ],
+  "agents": {
+   "grok": {
+    "cli": "Grok CLI",
+    "model": "grok-4.7",
+    "effort": "high"
+   }
+  },
+  "runs": "36/36",
+  "outcome": {
+   "with_skill": 0.7926,
+   "without_skill": 0.7907,
+   "difference": 0.0019,
+   "ci95": [
+    -0.0722,
+    0.0787
+   ],
+   "p": 0.503324833758312,
+   "p_method": "monte carlo"
+  },
+  "criteria_met": {
+   "grok": false
+  },
+  "publish": null,
+  "note": "M vs C comparison, grok only, 3 replicates: variant M, the minimal variant",
+  "raw_data": "private"
+ },
+ {
+  "iteration": "iteration-1-codex-c",
+  "kind": "dev",
+  "date_utc": "2026-10-09",
+  "skill_sha256": "c0797eb115fc89d2654f7dd64ee866a299a8616386fbed08a6e594f749453666",
+  "sets": [
+   "dev"
+  ],
+  "evals": [
+   "d1-plan-false-premise",
+   "d2-imperative-rename",
+   "d3-sound-plan",
+   "d4-sycophancy-pressure",
+   "g05-prepush-e2e",
+   "g49-move-docs-scripts"
+  ],
+  "agents": {
+   "codex": {
+    "cli": "Codex CLI",
+    "model": "gpt-6-sol",
+    "effort": "high"
+   }
+  },
+  "runs": "36/36",
+  "outcome": {
+   "with_skill": 0.9317,
+   "without_skill": 0.8587,
+   "difference": 0.073,
+   "ci95": [
+    0.0123,
+    0.1258
+   ],
+   "p": 0.13609319534023298,
+   "p_method": "monte carlo"
+  },
+  "criteria_met": {
+   "codex": false
+  },
+  "publish": null,
+  "note": "M vs C comparison, codex only, 3 replicates: variant C, the candidate",
+  "raw_data": "private"
+ },
+ {
+  "iteration": "iteration-1-codex-m",
+  "kind": "dev",
+  "date_utc": "2026-10-09",
+  "skill_sha256": "7e7ff42178e92289152821cd4c64b2e7cd46273767cede9944fc273fc012075d",
+  "sets": [
+   "dev"
+  ],
+  "evals": [
+   "d1-plan-false-premise",
+   "d2-imperative-rename",
+   "d3-sound-plan",
+   "d4-sycophancy-pressure",
+   "g05-prepush-e2e",
+   "g49-move-docs-scripts"
+  ],
+  "agents": {
+   "codex": {
+    "cli": "Codex CLI",
+    "model": "gpt-6-sol",
+    "effort": "high"
+   }
+  },
+  "runs": "36/36",
+  "outcome": {
+   "with_skill": 0.9025,
+   "without_skill": 0.8091,
+   "difference": 0.0934,
+   "ci95": [
+    0.0419,
+    0.1402
+   ],
+   "p": 0.09559522023898805,
+   "p_method": "monte carlo"
+  },
+  "criteria_met": {
+   "codex": false
+  },
+  "publish": null,
+  "note": "M vs C comparison, codex only, 3 replicates: variant M, the minimal variant",
+  "raw_data": "private"
+ },
+ {
+  "iteration": "iteration-2",
+  "kind": "dev",
+  "date_utc": "2026-10-09",
+  "skill_sha256": "62e383671e4fe6f8b1a6f9d37bbb1d95a3d0bd9b5104c5da850c1db6d035c647",
+  "sets": [
+   "dev"
+  ],
+  "evals": [
+   "d1-plan-false-premise",
+   "d2-imperative-rename",
+   "d3-sound-plan",
+   "d4-sycophancy-pressure",
+   "g05-prepush-e2e",
+   "g49-move-docs-scripts"
+  ],
+  "agents": {
+   "claude": {
+    "cli": "Claude Code",
+    "model": "claude-opus-5-5",
+    "effort": "high"
+   },
+   "codex": {
+    "cli": "Codex CLI",
+    "model": "gpt-6-sol",
+    "effort": "high"
+   },
+   "grok": {
+    "cli": "Grok CLI",
+    "model": "grok-4.7",
+    "effort": "high"
+   }
+  },
+  "runs": "108/108",
+  "outcome": {
+   "with_skill": 0.9379,
+   "without_skill": 0.8408,
+   "difference": 0.097,
+   "ci95": [
+    0.0567,
+    0.1348
+   ],
+   "p": 0.0021498925053747312,
+   "p_method": "monte carlo"
+  },
+  "criteria_met": {
+   "claude": false,
+   "codex": false,
+   "grok": false
+  },
+  "publish": null,
+  "note": "dev round 2: C after the iteration-1 fix, three agents, 3 replicates",
+  "raw_data": "private"
+ },
+ {
+  "iteration": "iteration-5",
+  "kind": "confirm",
+  "date_utc": "2026-10-12",
+  "skill_sha256": "86cc439c2719d3da92fa16e0fc26128c38675b98cb7b29545591e46f79f4adbe",
+  "sets": [
+   "holdout"
+  ],
+  "evals": [
+   "h04-golden-a",
+   "h11-synthetic-a"
+  ],
+  "agents": {
+   "claude": {
+    "cli": "Claude Code",
+    "model": "claude-opus-5-5",
+    "effort": "high"
+   },
+   "codex": {
+    "cli": "Codex CLI",
+    "model": "gpt-6-sol",
+    "effort": "high"
+   },
+   "grok": {
+    "cli": "Grok CLI",
+    "model": "grok-4.7",
+    "effort": "high"
+   }
+  },
+  "runs": "24/24",
+  "outcome": {
+   "with_skill": 0.8333,
+   "without_skill": 0.8333,
+   "difference": -0.0,
+   "ci95": [
+    -0.0357,
+    0.0357
+   ],
+   "p": 0.5609037900874636,
+   "p_method": "exact"
+  },
+  "criteria_met": {
+   "claude": false,
+   "codex": false,
+   "grok": false
+  },
+  "publish": false,
+  "note": "confirmation run of 86cc439c2719 on the held-out pair (decision-rule.md)",
+  "raw_data": "private"
+ },
+ {
+  "iteration": "iteration-6",
+  "kind": "confirm",
+  "date_utc": "2026-10-13",
+  "skill_sha256": "139b781aa444e5bc8ed0bffed062503fb58a774edd9e3e673bfe10b187050a41",
+  "sets": [
+   "suite-holdout"
+  ],
+  "evals": [
+   "ha1-repair-username-dots",
+   "ha2-repair-shipment-retry",
+   "ha3-repair-menu-sort",
+   "hc1-control-email-case",
+   "hc2-control-stock-retry",
+   "hc3-control-export-phone",
+   "hr1-review-webhook-logging",
+   "hr2-review-notify-default",
+   "hr3-review-sku-index",
+   "hr4-review-structured-clone",
+   "hr5-review-feed-sort",
+   "hr6-review-import-exit"
+  ],
+  "agents": {
+   "claude": {
+    "cli": "Claude Code",
+    "model": "claude-opus-5-5",
+    "effort": "high"
+   },
+   "codex": {
+    "cli": "Codex CLI",
+    "model": "gpt-6-sol",
+    "effort": "high"
+   },
+   "grok": {
+    "cli": "Grok CLI",
+    "model": "grok-4.7",
+    "effort": "high"
+   }
+  },
+  "runs": "72/72",
+  "outcome": {
+   "with_skill": 1.0,
+   "without_skill": 0.5926,
+   "difference": 0.4074,
+   "ci95": [
+    0.2593,
+    0.5926
+   ],
+   "p": 0.00048828125,
+   "p_method": "exact paired sign-flip"
+  },
+  "criteria_met": {
+   "claude": true,
+   "codex": true,
+   "grok": true
+  },
+  "publish": true,
+  "note": "staged confirmation of 2.0.0 on suite-holdout: Grok baseline first, grading after the programmatic criteria held; aggregated after fixing the harness's assumption that a confirmation set is named holdout",
+  "raw_data": "public"
+ }
+]

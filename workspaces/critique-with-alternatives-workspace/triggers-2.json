@@ -1,0 +1,544 @@
+{
+ "label": "triggers-2",
+ "date_utc": "2026-10-13",
+ "skill_sha256": "139b781aa444e5bc8ed0bffed062503fb58a774edd9e3e673bfe10b187050a41",
+ "queries_sha256": "18871ddb9f4dd2bbf851f0cea4693c86e8300724e411ad8047dec6a5f68d9742",
+ "runs_per_query": 1,
+ "max_tool_calls": 4,
+ "executors": {
+  "claude": {
+   "model": {
+    "cli": "Claude Code",
+    "model": "claude-opus-5-5",
+    "effort": "high"
+   },
+   "isolation": [
+    "temp-home"
+   ],
+   "recall": [
+    12,
+    12
+   ],
+   "false_trigger": [
+    0,
+    10
+   ],
+   "discovered": [
+    22,
+    22
+   ],
+   "queries": [
+    {
+     "index": 0,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 1,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 2,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 3,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 4,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 5,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 6,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 7,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 8,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 9,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 10,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 11,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 12,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 13,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 14,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 15,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 16,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 17,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 18,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 19,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 20,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 21,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    }
+   ]
+  },
+  "codex": {
+   "model": {
+    "cli": "Codex CLI",
+    "model": "gpt-6-sol",
+    "effort": "high"
+   },
+   "isolation": [
+    "temp-home"
+   ],
+   "recall": [
+    12,
+    12
+   ],
+   "false_trigger": [
+    0,
+    10
+   ],
+   "discovered": [
+    0,
+    0
+   ],
+   "queries": [
+    {
+     "index": 0,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 1,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 2,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 3,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 4,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 5,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 6,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 7,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 8,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 9,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 10,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 11,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 12,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 13,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 14,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 15,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 16,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 17,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 18,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 19,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 20,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 21,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    }
+   ]
+  },
+  "grok": {
+   "model": {
+    "cli": "Grok CLI",
+    "model": "grok-4.7",
+    "effort": "high"
+   },
+   "isolation": [
+    "temp-home"
+   ],
+   "recall": [
+    12,
+    12
+   ],
+   "false_trigger": [
+    1,
+    10
+   ],
+   "discovered": [
+    22,
+    22
+   ],
+   "queries": [
+    {
+     "index": 0,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 1,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 2,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 3,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 4,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 5,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 6,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 7,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 8,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 9,
+     "target": null,
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 10,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 11,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 12,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 13,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 14,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 15,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 16,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 17,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 18,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 19,
+     "target": "critique-with-alternatives",
+     "triggered": [
+      true
+     ]
+    },
+    {
+     "index": 20,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    },
+    {
+     "index": 21,
+     "target": null,
+     "triggered": [
+      false
+     ]
+    }
+   ]
+  }
+ }
+}

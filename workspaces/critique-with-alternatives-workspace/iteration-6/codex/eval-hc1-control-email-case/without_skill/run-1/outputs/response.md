@@ -1,0 +1,1 @@
+Updated `createUser()` to lowercase emails before checking for duplicates and saving them. Added a regression test for the two signup spellings you reported. All 4 tests pass, and the change is committed as `f263ad1` (`Normalize email casing when creating users`).

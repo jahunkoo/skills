@@ -1,0 +1,247 @@
+From 7c7c04bfb15431529e19bcd302279e9a570300aa Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Mon, 3 Mar 2025 11:00:00 +0000
+Subject: [PATCH 1/2] feat: recipe scaling CLI
+
+---
+ README.md          |  9 +++++++++
+ data/recipes.json  | 44 ++++++++++++++++++++++++++++++++++++++++++++
+ package.json       |  9 +++++++++
+ src/cli.js         | 23 +++++++++++++++++++++++
+ src/scale.js       | 14 ++++++++++++++
+ test/scale.test.js | 18 ++++++++++++++++++
+ 6 files changed, 117 insertions(+)
+ create mode 100644 README.md
+ create mode 100644 data/recipes.json
+ create mode 100644 package.json
+ create mode 100644 src/cli.js
+ create mode 100644 src/scale.js
+ create mode 100644 test/scale.test.js
+
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..a56d952
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,9 @@
++# recipe-tools
++
++Command-line helpers the kitchen uses to scale recipes and build shopping lists.
++
++    node src/cli.js scale pancakes 6
++    node src/cli.js list pancakes:6 soup:4
++
++Internal tool: not published to any package registry, and nothing outside this repository imports
++`src/`.
+diff --git a/data/recipes.json b/data/recipes.json
+new file mode 100644
+index 0000000..ba98b0a
+--- /dev/null
++++ b/data/recipes.json
+@@ -0,0 +1,44 @@
++[
++  {
++    "id": "pancakes",
++    "servings": 4,
++    "ingredients": [
++      {
++        "item": "flour",
++        "qty": 2,
++        "unit": "cup"
++      },
++      {
++        "item": "milk",
++        "qty": 1.5,
++        "unit": "cup"
++      },
++      {
++        "item": "eggs",
++        "qty": 2,
++        "unit": "pcs"
++      }
++    ]
++  },
++  {
++    "id": "soup",
++    "servings": 2,
++    "ingredients": [
++      {
++        "item": "onion",
++        "qty": 1,
++        "unit": "pcs"
++      },
++      {
++        "item": "stock",
++        "qty": 3,
++        "unit": "cup"
++      },
++      {
++        "item": "lentils",
++        "qty": 0.75,
++        "unit": "cup"
++      }
++    ]
++  }
++]
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..b43d08f
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,9 @@
++{
++  "name": "recipe-tools",
++  "version": "1.0.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "test": "node --test"
++  }
++}
+diff --git a/src/cli.js b/src/cli.js
+new file mode 100644
+index 0000000..de6c467
+--- /dev/null
++++ b/src/cli.js
+@@ -0,0 +1,23 @@
++import { readFileSync } from 'node:fs';
++import { pathToFileURL } from 'node:url';
++import { scaleQty, scaleRecipe } from './scale.js';
++
++const recipes = JSON.parse(readFileSync(new URL('../data/recipes.json', import.meta.url), 'utf8'));
++
++function byId(id) {
++  const recipe = recipes.find((r) => r.id === id);
++  if (!recipe) throw new Error(`unknown recipe ${id}`);
++  return recipe;
++}
++
++export function main([cmd, ...args]) {
++  if (cmd === 'scale') {
++    return scaleRecipe(byId(args[0]), Number(args[1])).ingredients.map((i) => `${i.item}: ${i.qty} ${i.unit}`);
++  }
++  if (cmd === 'qty') return [String(scaleQty(Number(args[0]), Number(args[1])))];
++  return ['usage: cli.js scale <recipe> <servings> | qty <qty> <factor> | list <recipe>:<servings> ...'];
++}
++
++if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
++  console.log(main(process.argv.slice(2)).join('\n'));
++}
+diff --git a/src/scale.js b/src/scale.js
+new file mode 100644
+index 0000000..665a453
+--- /dev/null
++++ b/src/scale.js
+@@ -0,0 +1,14 @@
++// Rounds to kitchen-friendly steps: whole units from 10 up, quarters below.
++export function scaleQty(qty, factor) {
++  const v = qty * factor;
++  return v >= 10 ? Math.round(v) : Math.round(v * 4) / 4;
++}
++
++export function scaleRecipe(recipe, servings) {
++  const factor = servings / recipe.servings;
++  return {
++    ...recipe,
++    servings,
++    ingredients: recipe.ingredients.map((i) => ({ ...i, qty: scaleQty(i.qty, factor) })),
++  };
++}
+diff --git a/test/scale.test.js b/test/scale.test.js
+new file mode 100644
+index 0000000..0e57d6e
+--- /dev/null
++++ b/test/scale.test.js
+@@ -0,0 +1,18 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { scaleQty, scaleRecipe } from '../src/scale.js';
++import { main } from '../src/cli.js';
++
++test('rounds to quarters below 10 and to whole units above', () => {
++  assert.equal(scaleQty(0.3, 1), 0.25);
++  assert.equal(scaleQty(9, 1.5), 14);
++});
++
++test('scales every ingredient', () => {
++  const r = scaleRecipe({ servings: 2, ingredients: [{ item: 'rice', qty: 1, unit: 'cup' }] }, 3);
++  assert.deepEqual(r.ingredients, [{ item: 'rice', qty: 1.5, unit: 'cup' }]);
++});
++
++test('the qty command prints the scaled quantity', () => {
++  assert.deepEqual(main(['qty', '3', '1.5']), ['4.5']);
++});
+
+From bcd7de4e01cee8962b0688584be481fb167dcc41 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Mon, 17 Mar 2025 11:00:00 +0000
+Subject: [PATCH 2/2] feat: shopping list for a week's plan
+
+---
+ src/cli.js                 |  5 +++++
+ src/shopping-list.js       | 14 ++++++++++++++
+ test/shopping-list.test.js | 11 +++++++++++
+ 3 files changed, 30 insertions(+)
+ create mode 100644 src/shopping-list.js
+ create mode 100644 test/shopping-list.test.js
+
+diff --git a/src/cli.js b/src/cli.js
+index de6c467..af66688 100644
+--- a/src/cli.js
++++ b/src/cli.js
+@@ -1,6 +1,7 @@
+ import { readFileSync } from 'node:fs';
+ import { pathToFileURL } from 'node:url';
+ import { scaleQty, scaleRecipe } from './scale.js';
++import { shoppingList } from './shopping-list.js';
+ 
+ const recipes = JSON.parse(readFileSync(new URL('../data/recipes.json', import.meta.url), 'utf8'));
+ 
+@@ -15,6 +16,10 @@ export function main([cmd, ...args]) {
+     return scaleRecipe(byId(args[0]), Number(args[1])).ingredients.map((i) => `${i.item}: ${i.qty} ${i.unit}`);
+   }
+   if (cmd === 'qty') return [String(scaleQty(Number(args[0]), Number(args[1])))];
++  if (cmd === 'list') {
++    const plan = args.map((a) => ({ recipe: a.split(':')[0], servings: Number(a.split(':')[1]) }));
++    return shoppingList(plan, recipes);
++  }
+   return ['usage: cli.js scale <recipe> <servings> | qty <qty> <factor> | list <recipe>:<servings> ...'];
+ }
+ 
+diff --git a/src/shopping-list.js b/src/shopping-list.js
+new file mode 100644
+index 0000000..5e7c35f
+--- /dev/null
++++ b/src/shopping-list.js
+@@ -0,0 +1,14 @@
++import { scaleQty } from './scale.js';
++
++// Sums the ingredients of several recipes, each scaled to the servings wanted.
++export function shoppingList(plan, recipes) {
++  const totals = new Map();
++  for (const { recipe, servings } of plan) {
++    const r = recipes.find((x) => x.id === recipe);
++    for (const i of r.ingredients) {
++      const key = `${i.item} (${i.unit})`;
++      totals.set(key, (totals.get(key) ?? 0) + scaleQty(i.qty, servings / r.servings));
++    }
++  }
++  return [...totals].map(([item, qty]) => `${item}: ${qty}`).sort();
++}
+diff --git a/test/shopping-list.test.js b/test/shopping-list.test.js
+new file mode 100644
+index 0000000..3a3486b
+--- /dev/null
++++ b/test/shopping-list.test.js
+@@ -0,0 +1,11 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { shoppingList } from '../src/shopping-list.js';
++
++test('adds up the same item across recipes', () => {
++  const recipes = [
++    { id: 'a', servings: 2, ingredients: [{ item: 'milk', qty: 1, unit: 'cup' }] },
++    { id: 'b', servings: 1, ingredients: [{ item: 'milk', qty: 0.5, unit: 'cup' }] },
++  ];
++  assert.deepEqual(shoppingList([{ recipe: 'a', servings: 2 }, { recipe: 'b', servings: 2 }], recipes), ['milk (cup): 2']);
++});

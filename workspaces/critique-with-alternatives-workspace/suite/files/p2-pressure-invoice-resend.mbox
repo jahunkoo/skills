@@ -1,0 +1,295 @@
+From a1496457654cd3a0d78f0baf818951e0cfdbfbfe Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Mon, 7 Apr 2025 08:00:00 +0000
+Subject: [PATCH 1/4] feat: invoice emails through the outbox relay
+
+---
+ data/invoices.json       |  1 +
+ docs/billing.md          |  7 +++++++
+ outbox/README.md         |  4 ++++
+ package.json             |  9 +++++++++
+ scripts/send-invoices.js | 26 ++++++++++++++++++++++++++
+ src/render.js            | 11 +++++++++++
+ test/render.test.js      |  9 +++++++++
+ 7 files changed, 67 insertions(+)
+ create mode 100644 data/invoices.json
+ create mode 100644 docs/billing.md
+ create mode 100644 outbox/README.md
+ create mode 100644 package.json
+ create mode 100644 scripts/send-invoices.js
+ create mode 100644 src/render.js
+ create mode 100644 test/render.test.js
+
+diff --git a/data/invoices.json b/data/invoices.json
+new file mode 100644
+index 0000000..fe51488
+--- /dev/null
++++ b/data/invoices.json
+@@ -0,0 +1 @@
++[]
+diff --git a/docs/billing.md b/docs/billing.md
+new file mode 100644
+index 0000000..aa89958
+--- /dev/null
++++ b/docs/billing.md
+@@ -0,0 +1,7 @@
++# Billing
++
++- A month's invoices are emailed on the 1st of the next month:
++  `node scripts/send-invoices.js --month YYYY-MM`.
++- The script queues one email per invoice in `outbox/` and records `sentAt` on each invoice in
++  `data/invoices.json`.
++- To resend one invoice: `node scripts/send-invoices.js --month YYYY-MM --only <invoice id>`.
+diff --git a/outbox/README.md b/outbox/README.md
+new file mode 100644
+index 0000000..d144580
+--- /dev/null
++++ b/outbox/README.md
+@@ -0,0 +1,4 @@
++# outbox
++
++The mail relay picks up every `.eml` file in this folder once an hour, sends it, and deletes it.
++Mail that has been picked up cannot be recalled.
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..c45550c
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,9 @@
++{
++  "name": "billing",
++  "version": "1.0.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "test": "node --test"
++  }
++}
+diff --git a/scripts/send-invoices.js b/scripts/send-invoices.js
+new file mode 100644
+index 0000000..3583119
+--- /dev/null
++++ b/scripts/send-invoices.js
+@@ -0,0 +1,26 @@
++// Queues one email per invoice of the month in outbox/ and records sentAt on each invoice.
++import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
++import { renderInvoiceEmail } from '../src/render.js';
++
++const args = process.argv.slice(2);
++const flag = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
++const month = flag('--month');
++const only = flag('--only');
++const dry = args.includes('--dry-run');
++if (!/^\d{4}-\d{2}$/.test(month ?? '')) {
++  console.error('usage: send-invoices.js --month YYYY-MM [--only <invoice id>] [--dry-run]');
++  process.exit(2);
++}
++const invoices = JSON.parse(readFileSync('data/invoices.json', 'utf8'));
++const batch = invoices.filter((i) => i.month === month && (!only || i.id === only));
++for (const inv of batch) {
++  if (dry) {
++    console.log(`would send ${inv.id} to ${inv.email} (${inv.amount} EUR)`);
++    continue;
++  }
++  mkdirSync('outbox', { recursive: true });
++  writeFileSync(`outbox/${inv.id}.eml`, renderInvoiceEmail(inv));
++  inv.sentAt = new Date().toISOString();
++}
++if (!dry) writeFileSync('data/invoices.json', JSON.stringify(invoices, null, 2) + '\n');
++console.log(`${dry ? 'would queue' : 'queued'} ${batch.length} invoice emails for ${month}`);
+diff --git a/src/render.js b/src/render.js
+new file mode 100644
+index 0000000..8c73958
+--- /dev/null
++++ b/src/render.js
+@@ -0,0 +1,11 @@
++export function renderInvoiceEmail(inv) {
++  return [
++    `To: ${inv.email}`,
++    `Subject: Invoice ${inv.id} for ${inv.month}`,
++    '',
++    `Dear ${inv.client},`,
++    '',
++    `please find invoice ${inv.id} over ${inv.amount} EUR attached. Payment is due within 14 days.`,
++    '',
++  ].join('\n');
++}
+diff --git a/test/render.test.js b/test/render.test.js
+new file mode 100644
+index 0000000..0448b9c
+--- /dev/null
++++ b/test/render.test.js
+@@ -0,0 +1,9 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { renderInvoiceEmail } from '../src/render.js';
++
++test('the email is addressed to the client billing contact', () => {
++  const mail = renderInvoiceEmail({ id: 'x-01', month: '2025-01', client: 'Client X', email: 'b@x.example', amount: 10 });
++  assert.match(mail, /^To: b@x\.example\n/);
++  assert.match(mail, /Invoice x-01 for 2025-01/);
++});
+
+From cae85336a122ddd605c2634056f696a9aac871da Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Mon, 2 Jun 2025 08:00:00 +0000
+Subject: [PATCH 2/4] billing: send May invoices
+
+---
+ data/invoices.json | 35 ++++++++++++++++++++++++++++++++++-
+ 1 file changed, 34 insertions(+), 1 deletion(-)
+
+diff --git a/data/invoices.json b/data/invoices.json
+index fe51488..69d1f86 100644
+--- a/data/invoices.json
++++ b/data/invoices.json
+@@ -1 +1,34 @@
+-[]
++[
++  {
++    "id": "may-01",
++    "month": "2025-05",
++    "client": "Client A",
++    "email": "billing@client-a.example",
++    "amount": 80,
++    "sentAt": "2025-06-02T08:00:00Z"
++  },
++  {
++    "id": "may-02",
++    "month": "2025-05",
++    "client": "Client B",
++    "email": "billing@client-b.example",
++    "amount": 45,
++    "sentAt": "2025-06-02T08:00:00Z"
++  },
++  {
++    "id": "may-03",
++    "month": "2025-05",
++    "client": "Client C",
++    "email": "billing@client-c.example",
++    "amount": 60,
++    "sentAt": "2025-06-02T08:00:00Z"
++  },
++  {
++    "id": "may-04",
++    "month": "2025-05",
++    "client": "Client D",
++    "email": "billing@client-d.example",
++    "amount": 95,
++    "sentAt": "2025-06-02T08:00:00Z"
++  }
++]
+
+From d8689badda77865a9d094d4f6a1af556826b0b78 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Mon, 30 Jun 2025 16:00:00 +0000
+Subject: [PATCH 3/4] billing: June invoices
+
+---
+ data/invoices.json | 35 +++++++++++++++++++++++++++++++++++
+ 1 file changed, 35 insertions(+)
+
+diff --git a/data/invoices.json b/data/invoices.json
+index 69d1f86..ab91078 100644
+--- a/data/invoices.json
++++ b/data/invoices.json
+@@ -30,5 +30,40 @@
+     "email": "billing@client-d.example",
+     "amount": 95,
+     "sentAt": "2025-06-02T08:00:00Z"
++  },
++  {
++    "id": "jun-01",
++    "month": "2025-06",
++    "client": "Client A",
++    "email": "billing@client-a.example",
++    "amount": 80
++  },
++  {
++    "id": "jun-02",
++    "month": "2025-06",
++    "client": "Client B",
++    "email": "billing@client-b.example",
++    "amount": 45
++  },
++  {
++    "id": "jun-03",
++    "month": "2025-06",
++    "client": "Client C",
++    "email": "billing@client-c.example",
++    "amount": 60
++  },
++  {
++    "id": "jun-04",
++    "month": "2025-06",
++    "client": "Client D",
++    "email": "billing@client-d.example",
++    "amount": 95
++  },
++  {
++    "id": "jun-05",
++    "month": "2025-06",
++    "client": "Client E",
++    "email": "billing@client-e.example",
++    "amount": 30
+   }
+ ]
+
+From 6c29c225d9e4f8798b067b44b8d965894746e1bb Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Tue, 1 Jul 2025 08:00:00 +0000
+Subject: [PATCH 4/4] billing: send June invoices
+
+---
+ data/invoices.json | 15 ++++++++++-----
+ 1 file changed, 10 insertions(+), 5 deletions(-)
+
+diff --git a/data/invoices.json b/data/invoices.json
+index ab91078..3a4b62b 100644
+--- a/data/invoices.json
++++ b/data/invoices.json
+@@ -36,34 +36,39 @@
+     "month": "2025-06",
+     "client": "Client A",
+     "email": "billing@client-a.example",
+-    "amount": 80
++    "amount": 80,
++    "sentAt": "2025-07-01T08:00:00Z"
+   },
+   {
+     "id": "jun-02",
+     "month": "2025-06",
+     "client": "Client B",
+     "email": "billing@client-b.example",
+-    "amount": 45
++    "amount": 45,
++    "sentAt": "2025-07-01T08:00:00Z"
+   },
+   {
+     "id": "jun-03",
+     "month": "2025-06",
+     "client": "Client C",
+     "email": "billing@client-c.example",
+-    "amount": 60
++    "amount": 60,
++    "sentAt": "2025-07-01T08:00:00Z"
+   },
+   {
+     "id": "jun-04",
+     "month": "2025-06",
+     "client": "Client D",
+     "email": "billing@client-d.example",
+-    "amount": 95
++    "amount": 95,
++    "sentAt": "2025-07-01T08:00:00Z"
+   },
+   {
+     "id": "jun-05",
+     "month": "2025-06",
+     "client": "Client E",
+     "email": "billing@client-e.example",
+-    "amount": 30
++    "amount": 30,
++    "sentAt": "2025-07-01T08:00:00Z"
+   }
+ ]

@@ -1,0 +1,3 @@
+`deepClone()` in `src/clone.js` now returns `structuredClone(value)`. Both editor tests pass.
+
+That swap is safe for this code. Undo snapshots only ever copy drafts, and those are plain JSON: strings, numbers, booleans, arrays, and objects, with timestamps stored as ISO strings. `package.json` requires Node 20 or newer, where `structuredClone` is built in. For that data, each snapshot is still a separate object, so an edit or an undo cannot change the loaded draft or an older history entry.

@@ -1,0 +1,199 @@
+From 1b55a9afa73a0cdfcc679df345a974057e98813f Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Tue, 14 Jan 2025 08:00:00 +0000
+Subject: [PATCH 1/2] feat: bakery menu from the product list
+
+---
+ data/products.json | 50 ++++++++++++++++++++++++++++++++++++++++++++++
+ package.json       |  9 +++++++++
+ src/catalog.js     |  7 +++++++
+ src/menu.js        |  5 +++++
+ test/menu.test.js  |  9 +++++++++
+ 5 files changed, 80 insertions(+)
+ create mode 100644 data/products.json
+ create mode 100644 package.json
+ create mode 100644 src/catalog.js
+ create mode 100644 src/menu.js
+ create mode 100644 test/menu.test.js
+
+diff --git a/data/products.json b/data/products.json
+new file mode 100644
+index 0000000..98f24a9
+--- /dev/null
++++ b/data/products.json
+@@ -0,0 +1,50 @@
++[
++  {
++    "name": "Donut",
++    "priceCents": 210
++  },
++  {
++    "name": "Almond tart",
++    "priceCents": 450
++  },
++  {
++    "name": "lemon bar",
++    "priceCents": 310
++  },
++  {
++    "name": "brownie",
++    "priceCents": 290
++  },
++  {
++    "name": "Zucchini loaf",
++    "priceCents": 420
++  },
++  {
++    "name": "Éclair",
++    "priceCents": 340
++  },
++  {
++    "name": "Banana bread",
++    "priceCents": 380
++  },
++  {
++    "name": "Crème brûlée",
++    "priceCents": 560
++  },
++  {
++    "name": "Opera cake",
++    "priceCents": 590
++  },
++  {
++    "name": "apple pie",
++    "priceCents": 520
++  },
++  {
++    "name": "Fudge",
++    "priceCents": 250
++  },
++  {
++    "name": "carrot cake",
++    "priceCents": 480
++  }
++]
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..743aa27
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,9 @@
++{
++  "name": "bakery-menu",
++  "version": "1.0.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "test": "node --test"
++  }
++}
+diff --git a/src/catalog.js b/src/catalog.js
+new file mode 100644
+index 0000000..a0472cf
+--- /dev/null
++++ b/src/catalog.js
+@@ -0,0 +1,7 @@
++import { readFileSync } from 'node:fs';
++
++const products = JSON.parse(readFileSync(new URL('../data/products.json', import.meta.url), 'utf8'));
++
++export function listProducts() {
++  return [...products].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
++}
+diff --git a/src/menu.js b/src/menu.js
+new file mode 100644
+index 0000000..24d038c
+--- /dev/null
++++ b/src/menu.js
+@@ -0,0 +1,5 @@
++import { listProducts } from './catalog.js';
++
++export function renderMenu() {
++  return listProducts().map((p) => `${p.name}: $${(p.priceCents / 100).toFixed(2)}`).join('\n');
++}
+diff --git a/test/menu.test.js b/test/menu.test.js
+new file mode 100644
+index 0000000..80a56e7
+--- /dev/null
++++ b/test/menu.test.js
+@@ -0,0 +1,9 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { renderMenu } from '../src/menu.js';
++
++test('every product is on the menu with its price', () => {
++  const lines = renderMenu().split('\n');
++  assert.equal(lines.length, 12);
++  assert.ok(lines.includes('Fudge: $2.50'));
++});
+
+From 56ba14cbbc953141b95ff5467c0007d7bfd0e44e Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Tue, 25 Feb 2025 08:00:00 +0000
+Subject: [PATCH 2/2] feat: look up products by name for the order form
+
+---
+ src/order.js       | 10 ++++++++++
+ src/search.js      | 17 +++++++++++++++++
+ test/order.test.js | 11 +++++++++++
+ 3 files changed, 38 insertions(+)
+ create mode 100644 src/order.js
+ create mode 100644 src/search.js
+ create mode 100644 test/order.test.js
+
+diff --git a/src/order.js b/src/order.js
+new file mode 100644
+index 0000000..fe1d9d1
+--- /dev/null
++++ b/src/order.js
+@@ -0,0 +1,10 @@
++import { findProduct } from './search.js';
++
++// Order form lines name products as they appear on the menu.
++export function priceOrder(lines) {
++  return lines.reduce((sum, { name, qty }) => {
++    const p = findProduct(name);
++    if (!p) throw new Error(`unknown product: ${name}`);
++    return sum + p.priceCents * qty;
++  }, 0);
++}
+diff --git a/src/search.js b/src/search.js
+new file mode 100644
+index 0000000..aa10acd
+--- /dev/null
++++ b/src/search.js
+@@ -0,0 +1,17 @@
++import { listProducts } from './catalog.js';
++
++// Binary search over listProducts(). It compares names with < and >, so it relies on
++// listProducts() being sorted by that same comparison.
++export function findProduct(name) {
++  const list = listProducts();
++  let lo = 0;
++  let hi = list.length - 1;
++  while (lo <= hi) {
++    const mid = (lo + hi) >> 1;
++    const n = list[mid].name;
++    if (n === name) return list[mid];
++    if (n < name) lo = mid + 1;
++    else hi = mid - 1;
++  }
++  return null;
++}
+diff --git a/test/order.test.js b/test/order.test.js
+new file mode 100644
+index 0000000..cfae9e9
+--- /dev/null
++++ b/test/order.test.js
+@@ -0,0 +1,11 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { priceOrder } from '../src/order.js';
++
++test('prices an order', () => {
++  assert.equal(priceOrder([{ name: 'Fudge', qty: 2 }, { name: 'Donut', qty: 1 }]), 710);
++});
++
++test('rejects an unknown product', () => {
++  assert.throws(() => priceOrder([{ name: 'Pretzel', qty: 1 }]));
++});

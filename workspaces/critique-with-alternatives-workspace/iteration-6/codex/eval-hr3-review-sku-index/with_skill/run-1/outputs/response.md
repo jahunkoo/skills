@@ -1,0 +1,5 @@
+Target: the proposed `UNIQUE (sku)` migration. I wouldn’t add it as written. A SKU can appear in multiple warehouses, and the [sample data](data/products-sample.csv:2) already contains those rows. The [importer](src/import.js:4) identifies a product by warehouse and SKU. The proposed index would reject valid stock and fail deployment on the sample data.
+
+Use `CREATE UNIQUE INDEX products_warehouse_sku ON products (warehouse_id, sku);` in `003_unique_sku.sql`. Before deployment, check production for duplicate warehouse/SKU pairs and resolve any found; the [migration policy](docs/migrations.md:3) says a failed migration aborts deployment. I left the repository unchanged because you asked for my opinion before the change.
+
+**Verdict: proceed with changes—make uniqueness per warehouse and SKU, after checking existing pairs.**

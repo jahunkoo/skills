@@ -1,15 +1,20 @@
 """Headless agent CLIs behind one interface: claude (Claude Code), codex (Codex CLI), grok (Grok CLI).
 
 Every run gets its own temporary HOME so user-level settings, memory files, hooks and skills do not leak in.
-Only the CLI's credential file is linked into that home (never copied). Claude Code keeps its login in the
+Only the CLI's credential file is linked into that home (never copied); for Codex that is the one in $CODEX_HOME
+when it is set (an account manager may point it at another login), else ~/.codex. Claude Code keeps its login in the
 macOS keychain, so an isolated Claude run needs a long-lived subscription token from `claude setup-token`,
-read from $CLAUDE_CODE_OAUTH_TOKEN or the keychain item `claude-eval-oauth`. Without it, Claude runs only
-with --claude-login, which uses the normal login and is recorded as `isolation: none`.
+read from $CLAUDE_CODE_OAUTH_TOKEN or the keychain item `claude-eval-oauth`. Further tokens (other accounts) go in
+`claude-eval-oauth-2`, `claude-eval-oauth-3`, ... and are used in that order: a run that stops at a usage limit
+before doing anything is run again with the next token. Without any token, Claude runs only with --claude-login,
+which uses the normal login and is recorded as `isolation: none`.
 """
 import json
 import os
+import re
 import shutil
 import subprocess
+import threading
 import time
 from pathlib import Path
 
@@ -17,6 +22,9 @@ USER_HOME = Path.home()
 EXECUTOR_TIMEOUT = 45 * 60
 GRADER_TIMEOUT = 20 * 60
 KEYCHAIN_ITEM = "claude-eval-oauth"
+MAX_KEYCHAIN_ITEMS = 9
+LIMIT_RE = re.compile(r"hit your (\w+ )?limit|usage limit|rate limit", re.I)
+_exhausted, _exhausted_lock = set(), threading.Lock()  # token slots that hit a limit in this process
 
 
 def _version(cmd):
@@ -26,15 +34,34 @@ def _version(cmd):
         return None
 
 
-def claude_token():
-    token = os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
-    if token:
-        return token
-    if shutil.which("security") is None:  # the keychain fallback is macOS only
-        return None
-    p = subprocess.run(["security", "find-generic-password", "-a", os.environ.get("USER", ""), "-s", KEYCHAIN_ITEM, "-w"],
+def _keychain(item):
+    p = subprocess.run(["security", "find-generic-password", "-a", os.environ.get("USER", ""), "-s", item, "-w"],
                        capture_output=True, text=True)
     return p.stdout.strip() or None
+
+
+def claude_tokens():
+    """[(slot, token)] in priority order: $CLAUDE_CODE_OAUTH_TOKEN, then keychain items claude-eval-oauth, -2, -3, ..."""
+    tokens = []
+    if os.environ.get("CLAUDE_CODE_OAUTH_TOKEN"):
+        tokens.append(("env", os.environ["CLAUDE_CODE_OAUTH_TOKEN"]))
+    if shutil.which("security"):  # the keychain fallback is macOS only
+        for n in range(1, MAX_KEYCHAIN_ITEMS + 1):
+            item = KEYCHAIN_ITEM if n == 1 else f"{KEYCHAIN_ITEM}-{n}"
+            token = _keychain(item)
+            if token:
+                tokens.append((item, token))
+    return tokens
+
+
+def claude_token():
+    tokens = claude_tokens()
+    return tokens[0][1] if tokens else None
+
+
+def codex_home():
+    """The Codex login the user's shell would use: $CODEX_HOME if set, else ~/.codex."""
+    return Path(os.environ["CODEX_HOME"]) if os.environ.get("CODEX_HOME") else USER_HOME / ".codex"
 
 
 def _link(src, dest):
@@ -43,7 +70,7 @@ def _link(src, dest):
         dest.symlink_to(src)
 
 
-def isolated_env(backend, home, claude_login=False):
+def isolated_env(backend, home, claude_login=False, token=None):
     """Environment for one run. Returns (env, isolation) where isolation is 'temp-home' or 'none'."""
     home = Path(home)
     if home.exists():
@@ -51,7 +78,7 @@ def isolated_env(backend, home, claude_login=False):
     home.mkdir(parents=True)
     env = {k: v for k, v in os.environ.items() if k not in ("CLAUDE_CODE_OAUTH_TOKEN",)}
     if backend == "codex":
-        _link(USER_HOME / ".codex" / "auth.json", home / ".codex" / "auth.json")
+        _link(codex_home() / "auth.json", home / ".codex" / "auth.json")
         env.update(HOME=str(home), CODEX_HOME=str(home / ".codex"))
         return env, "temp-home"
     if backend == "grok":
@@ -60,7 +87,7 @@ def isolated_env(backend, home, claude_login=False):
                    GROK_CLAUDE_SKILLS_ENABLED="false", GROK_CURSOR_SKILLS_ENABLED="false")
         return env, "temp-home"
     if backend == "claude":
-        token = None if claude_login else claude_token()
+        token = None if claude_login else (token or claude_token())
         if token:
             env.update(HOME=str(home), CLAUDE_CONFIG_DIR=str(home / ".claude"), CLAUDE_CODE_OAUTH_TOKEN=token)
             return env, "temp-home"
@@ -166,6 +193,9 @@ def command(backend, cwd, prompt, model, effort, mode, out_dir, extra_dirs=()):
                 "--ignore-rules", "--ephemeral", "--json", "-o", str(Path(out_dir) / "last-message.txt"), "-m", model]
         if effort:
             argv += ["-c", f"model_reasoning_effort={effort}"]
+        git_dir = Path(cwd) / ".git"
+        if mode == "executor" and git_dir.is_dir():  # workspace-write keeps .git read-only, so a run could not commit
+            argv += ["-c", f"sandbox_workspace_write.writable_roots={json.dumps([str(git_dir)])}"]
         return argv + ["-"], prompt
     if backend == "grok":
         argv = ["grok", "--no-auto-update", "--cwd", str(cwd), "-m", model, "-p", prompt,
@@ -180,10 +210,29 @@ VERSION_CMD = {"claude": ["claude", "--version"], "codex": ["codex", "--version"
 
 
 def run(backend, cwd, prompt, model, effort, mode, out_dir, home, extra_dirs=(), claude_login=False):
-    """Run one agent session. Raw output stays in out_dir (private); the returned dict is what gets kept."""
+    """Run one agent session. Raw output stays in out_dir (private); the returned dict is what gets kept.
+    An isolated Claude run tries the tokens in priority order, skipping slots that already hit a limit."""
+    if backend != "claude" or claude_login:
+        return _run_once(backend, cwd, prompt, model, effort, mode, out_dir, home, extra_dirs, claude_login)
+    tokens = claude_tokens()
+    if not tokens:
+        isolated_env(backend, home)  # raises with the setup hint
+    with _exhausted_lock:
+        todo = [t for t in tokens if t[0] not in _exhausted] or tokens[-1:]
+    for slot, token in todo:
+        r = _run_once(backend, cwd, prompt, model, effort, mode, out_dir, home, extra_dirs, False, token)
+        r["auth_slot"] = slot
+        if not (r["error"] and LIMIT_RE.search(r["error"]) and not r["tool_calls"]):
+            return r
+        with _exhausted_lock:
+            _exhausted.add(slot)
+    return r
+
+
+def _run_once(backend, cwd, prompt, model, effort, mode, out_dir, home, extra_dirs, claude_login, token=None):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    env, isolation = isolated_env(backend, home, claude_login)
+    env, isolation = isolated_env(backend, home, claude_login, token)
     argv, stdin = command(backend, cwd, prompt, model, effort, mode, out_dir, extra_dirs)
     timeout = EXECUTOR_TIMEOUT if mode == "executor" else GRADER_TIMEOUT
     start = time.monotonic()

@@ -1,0 +1,148 @@
+From ab56681f210fc74cba805addc632c4313881b684 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Mon, 10 Feb 2025 15:00:00 +0000
+Subject: [PATCH 1/2] feat: accounts
+
+---
+ data/users.json    | 17 +++++++++++++++++
+ package.json       |  9 +++++++++
+ src/users.js       | 13 +++++++++++++
+ test/users.test.js | 18 ++++++++++++++++++
+ 4 files changed, 57 insertions(+)
+ create mode 100644 data/users.json
+ create mode 100644 package.json
+ create mode 100644 src/users.js
+ create mode 100644 test/users.test.js
+
+diff --git a/data/users.json b/data/users.json
+new file mode 100644
+index 0000000..595c017
+--- /dev/null
++++ b/data/users.json
+@@ -0,0 +1,17 @@
++[
++  {
++    "id": 1,
++    "email": "alice@example.invalid",
++    "name": "alice"
++  },
++  {
++    "id": 2,
++    "email": "Bob@Example.invalid",
++    "name": "bob"
++  },
++  {
++    "id": 3,
++    "email": "carol@example.invalid",
++    "name": "carol"
++  }
++]
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..753812d
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,9 @@
++{
++  "name": "accounts",
++  "version": "1.0.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "test": "node --test"
++  }
++}
+diff --git a/src/users.js b/src/users.js
+new file mode 100644
+index 0000000..f712721
+--- /dev/null
++++ b/src/users.js
+@@ -0,0 +1,13 @@
++export function createUser(store, { email, name }) {
++  const address = String(email).trim();
++  if (store.users.some((u) => u.email === address)) throw new Error(`email already registered: ${address}`);
++  const user = { id: store.users.length + 1, email: address, name };
++  store.users.push(user);
++  return user;
++}
++
++// Sign-in lookup. Addresses are compared without regard to case.
++export function findByEmail(store, email) {
++  const want = String(email).trim().toLowerCase();
++  return store.users.find((u) => u.email.toLowerCase() === want) ?? null;
++}
+diff --git a/test/users.test.js b/test/users.test.js
+new file mode 100644
+index 0000000..399a8ad
+--- /dev/null
++++ b/test/users.test.js
+@@ -0,0 +1,18 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { createUser, findByEmail } from '../src/users.js';
++
++test('stores the trimmed address', () => {
++  const store = { users: [] };
++  assert.equal(createUser(store, { email: ' dan@example.invalid ', name: 'dan' }).email, 'dan@example.invalid');
++});
++
++test('rejects an address that is already registered', () => {
++  const store = { users: [{ id: 1, email: 'dan@example.invalid' }] };
++  assert.throws(() => createUser(store, { email: 'dan@example.invalid', name: 'dan' }));
++});
++
++test('sign-in ignores case', () => {
++  const store = { users: [{ id: 1, email: 'erin@example.invalid' }] };
++  assert.equal(findByEmail(store, 'Erin@Example.invalid').id, 1);
++});
+
+From 909734700a6369319e3abe65d400ad373ddb27b6 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Tue, 4 Mar 2025 15:00:00 +0000
+Subject: [PATCH 2/2] data: lowercase stored emails
+
+Sign-in already compares addresses without case, so nobody's login changes.
+---
+ data/users.json             | 2 +-
+ docs/accounts.md            | 4 ++++
+ scripts/lowercase-emails.js | 7 +++++++
+ 3 files changed, 12 insertions(+), 1 deletion(-)
+ create mode 100644 docs/accounts.md
+ create mode 100644 scripts/lowercase-emails.js
+
+diff --git a/data/users.json b/data/users.json
+index 595c017..08f3df4 100644
+--- a/data/users.json
++++ b/data/users.json
+@@ -6,7 +6,7 @@
+   },
+   {
+     "id": 2,
+-    "email": "Bob@Example.invalid",
++    "email": "bob@example.invalid",
+     "name": "bob"
+   },
+   {
+diff --git a/docs/accounts.md b/docs/accounts.md
+new file mode 100644
+index 0000000..81039bc
+--- /dev/null
++++ b/docs/accounts.md
+@@ -0,0 +1,4 @@
++# Accounts
++
++- Email addresses are matched without case everywhere: sign-in (`findByEmail`) and the mailing tool.
++- Every stored address is lowercase since `scripts/lowercase-emails.js` ran.
+diff --git a/scripts/lowercase-emails.js b/scripts/lowercase-emails.js
+new file mode 100644
+index 0000000..a92f4b1
+--- /dev/null
++++ b/scripts/lowercase-emails.js
+@@ -0,0 +1,7 @@
++// One-off: lowercases every stored email address.
++import { readFileSync, writeFileSync } from 'node:fs';
++
++const file = process.argv[2] ?? 'data/users.json';
++const users = JSON.parse(readFileSync(file, 'utf8'));
++for (const user of users) user.email = user.email.toLowerCase();
++writeFileSync(file, JSON.stringify(users, null, 2) + '\n');

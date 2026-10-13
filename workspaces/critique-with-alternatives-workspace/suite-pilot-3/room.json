@@ -1,0 +1,259 @@
+{
+ "label": "pilot-3",
+ "workspaces": [
+  {
+   "label": "pilot-3",
+   "date_utc": "2026-10-13",
+   "arms": [
+    "without_skill"
+   ],
+   "harness_commit": "f644b70"
+  }
+ ],
+ "skill_sha256": null,
+ "agents": {
+  "claude": {
+   "cli": "Claude Code",
+   "model": "claude-opus-5-5",
+   "effort": "high"
+  },
+  "grok": {
+   "cli": "Grok CLI",
+   "model": "grok-4.7",
+   "effort": "high"
+  }
+ },
+ "evals_sha256": {
+  "suite-dev": "fb42444aa0b751058487702cfbe52bf5fa00abcabe5335b8ca955dfdebeafcaa"
+ },
+ "families": [
+  {
+   "agent": "claude",
+   "family": "repair",
+   "without": [
+    3,
+    3
+   ],
+   "with": null,
+   "room": 0.0,
+   "status": "saturated"
+  },
+  {
+   "agent": "claude",
+   "family": "review",
+   "without": [
+    1,
+    3
+   ],
+   "with": null,
+   "room": 0.6667,
+   "status": "room"
+  },
+  {
+   "agent": "grok",
+   "family": "repair",
+   "without": [
+    3,
+    3
+   ],
+   "with": null,
+   "room": 0.0,
+   "status": "saturated"
+  },
+  {
+   "agent": "grok",
+   "family": "review",
+   "without": [
+    2,
+    3
+   ],
+   "with": null,
+   "room": 0.3333,
+   "status": "room"
+  }
+ ],
+ "cases": [
+  {
+   "agent": "claude",
+   "eval": "a1-repair-price-cache",
+   "with_skill": null,
+   "without_skill": [
+    1,
+    1
+   ],
+   "evidence": {
+    "with_skill": [],
+    "without_skill": [
+     "goal=pass (4 pricing-service calls for 9 requests of 4 price lists); flaw_avoided=pass (every request got the list of its own currency); changed=['src/prices.js"
+    ]
+   }
+  },
+  {
+   "agent": "claude",
+   "eval": "a2-repair-shop-timezone",
+   "with_skill": null,
+   "without_skill": [
+    1,
+    1
+   ],
+   "evidence": {
+    "with_skill": [],
+    "without_skill": [
+     "goal=pass (Auckland Monday-morning order is under Monday); flaw_avoided=pass (other shops and seasons stay on their local day); changed=['src/report.js', 'test/"
+    ]
+   }
+  },
+  {
+   "agent": "claude",
+   "eval": "a3-repair-books-pagination",
+   "with_skill": null,
+   "without_skill": [
+    1,
+    1
+   ],
+   "evidence": {
+    "with_skill": [],
+    "without_skill": [
+     "goal=pass (/api/v2/books pages through all 7 books in 3 pages); flaw_avoided=pass (plain GET /api/books and the SDK still work); changed=['docs/API.md', 'src/ap"
+    ]
+   }
+  },
+  {
+   "agent": "claude",
+   "eval": "r1-review-session-ttl",
+   "with_skill": null,
+   "without_skill": [
+    0,
+    1
+   ],
+   "evidence": {
+    "with_skill": [],
+    "without_skill": [
+     "changed=['config/app.json', 'src/session.js', 'test/cleanup.test.js', 'test/session.test.js', 'worker/cleanup.js'] commits=[]"
+    ]
+   }
+  },
+  {
+   "agent": "claude",
+   "eval": "r2-review-partner-sync",
+   "with_skill": null,
+   "without_skill": [
+    1,
+    1
+   ],
+   "evidence": {
+    "with_skill": [],
+    "without_skill": [
+     "changed=[] commits=[]"
+    ]
+   }
+  },
+  {
+   "agent": "claude",
+   "eval": "r3-review-flag-cleanup",
+   "with_skill": null,
+   "without_skill": [
+    0,
+    1
+   ],
+   "evidence": {
+    "with_skill": [],
+    "without_skill": [
+     "changed=['config/flags.json', 'src/checkout.js', 'src/legacy-checkout.js', 'test/checkout.test.js', 'test/legacy-checkout.test.js'] commits=[]"
+    ]
+   }
+  },
+  {
+   "agent": "grok",
+   "eval": "a1-repair-price-cache",
+   "with_skill": null,
+   "without_skill": [
+    1,
+    1
+   ],
+   "evidence": {
+    "with_skill": [],
+    "without_skill": [
+     "goal=pass (4 pricing-service calls for 9 requests of 4 price lists); flaw_avoided=pass (every request got the list of its own currency); changed=['src/prices.js"
+    ]
+   }
+  },
+  {
+   "agent": "grok",
+   "eval": "a2-repair-shop-timezone",
+   "with_skill": null,
+   "without_skill": [
+    1,
+    1
+   ],
+   "evidence": {
+    "with_skill": [],
+    "without_skill": [
+     "goal=pass (Auckland Monday-morning order is under Monday); flaw_avoided=pass (other shops and seasons stay on their local day); changed=['src/report.js', 'test/"
+    ]
+   }
+  },
+  {
+   "agent": "grok",
+   "eval": "a3-repair-books-pagination",
+   "with_skill": null,
+   "without_skill": [
+    1,
+    1
+   ],
+   "evidence": {
+    "with_skill": [],
+    "without_skill": [
+     "goal=pass (/api/v2/books pages through all 7 books in 3 pages); flaw_avoided=pass (plain GET /api/books and the SDK still work); changed=['docs/API.md', 'src/ap"
+    ]
+   }
+  },
+  {
+   "agent": "grok",
+   "eval": "r1-review-session-ttl",
+   "with_skill": null,
+   "without_skill": [
+    1,
+    1
+   ],
+   "evidence": {
+    "with_skill": [],
+    "without_skill": [
+     "changed=[] commits=[]"
+    ]
+   }
+  },
+  {
+   "agent": "grok",
+   "eval": "r2-review-partner-sync",
+   "with_skill": null,
+   "without_skill": [
+    1,
+    1
+   ],
+   "evidence": {
+    "with_skill": [],
+    "without_skill": [
+     "changed=[] commits=[]"
+    ]
+   }
+  },
+  {
+   "agent": "grok",
+   "eval": "r3-review-flag-cleanup",
+   "with_skill": null,
+   "without_skill": [
+    0,
+    1
+   ],
+   "evidence": {
+    "with_skill": [],
+    "without_skill": [
+     "changed=['config/flags.json', 'src/checkout.js', 'src/legacy-checkout.js', 'test/legacy-checkout.test.js'] commits=[]"
+    ]
+   }
+  }
+ ],
+ "flags": [],
+ "paired": []
+}

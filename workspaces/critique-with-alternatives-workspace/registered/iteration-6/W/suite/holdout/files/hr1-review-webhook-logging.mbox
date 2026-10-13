@@ -1,0 +1,216 @@
+From 0574a239568121a41d615625431c6fcd532f9df8 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Tue, 11 Feb 2025 10:00:00 +0000
+Subject: [PATCH 1/3] feat: partner webhooks for order events
+
+---
+ package.json          |  9 +++++++++
+ src/auth.js           |  8 ++++++++
+ src/logger.js         | 15 +++++++++++++++
+ src/webhooks.js       | 21 +++++++++++++++++++++
+ test/webhooks.test.js | 22 ++++++++++++++++++++++
+ 5 files changed, 75 insertions(+)
+ create mode 100644 package.json
+ create mode 100644 src/auth.js
+ create mode 100644 src/logger.js
+ create mode 100644 src/webhooks.js
+ create mode 100644 test/webhooks.test.js
+
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..f822400
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,9 @@
++{
++  "name": "order-hooks",
++  "version": "1.0.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "test": "node --test"
++  }
++}
+diff --git a/src/auth.js b/src/auth.js
+new file mode 100644
+index 0000000..1376a2d
+--- /dev/null
++++ b/src/auth.js
+@@ -0,0 +1,8 @@
++// Partners call us with a static token: `Authorization: Bearer <token>`.
++// `tokens` maps a partner name to its token.
++export function partnerFor(headers, tokens) {
++  const auth = headers?.authorization ?? '';
++  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
++  if (!token) return null;
++  return Object.keys(tokens).find((name) => tokens[name] === token) ?? null;
++}
+diff --git a/src/logger.js b/src/logger.js
+new file mode 100644
+index 0000000..a09af79
+--- /dev/null
++++ b/src/logger.js
+@@ -0,0 +1,15 @@
++// JSON lines on stdout. In production stdout is shipped to the hosted log service (docs/logging.md).
++let sink = (line) => console.log(line);
++
++export function setSink(fn) {
++  sink = fn;
++}
++
++function write(level, msg, fields = {}) {
++  sink(JSON.stringify({ level, msg, ...fields }));
++}
++
++export const logger = {
++  info: (msg, fields) => write('info', msg, fields),
++  warn: (msg, fields) => write('warn', msg, fields),
++};
+diff --git a/src/webhooks.js b/src/webhooks.js
+new file mode 100644
+index 0000000..c7240df
+--- /dev/null
++++ b/src/webhooks.js
+@@ -0,0 +1,21 @@
++import { partnerFor } from './auth.js';
++import { logger } from './logger.js';
++
++const HANDLERS = {
++  'order.paid': (body) => ({ status: 'queued', orderId: body.orderId }),
++  'order.cancelled': (body) => ({ status: 'cancelled', orderId: body.orderId }),
++};
++
++export function handleWebhook(req, tokens) {
++  const partner = partnerFor(req.headers, tokens);
++  if (!partner) {
++    logger.warn('webhook rejected', { reason: 'unknown token' });
++    return { status: 401 };
++  }
++  const handler = HANDLERS[req.body?.type];
++  if (!handler) {
++    logger.warn('webhook rejected', { partner, reason: `unknown type ${req.body?.type}` });
++    return { status: 400 };
++  }
++  return { status: 200, body: handler(req.body) };
++}
+diff --git a/test/webhooks.test.js b/test/webhooks.test.js
+new file mode 100644
+index 0000000..b661442
+--- /dev/null
++++ b/test/webhooks.test.js
+@@ -0,0 +1,22 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { setSink } from '../src/logger.js';
++import { handleWebhook } from '../src/webhooks.js';
++
++setSink(() => {});
++const tokens = { 'north-freight': 'tok-north' };
++const req = (authorization, body) => ({ headers: { authorization }, body });
++
++test('accepts a known partner', () => {
++  const res = handleWebhook(req('Bearer tok-north', { type: 'order.paid', orderId: 'o1' }), tokens);
++  assert.equal(res.status, 200);
++  assert.deepEqual(res.body, { status: 'queued', orderId: 'o1' });
++});
++
++test('rejects an unknown token', () => {
++  assert.equal(handleWebhook(req('Bearer nope', { type: 'order.paid' }), tokens).status, 401);
++});
++
++test('rejects an unknown event type', () => {
++  assert.equal(handleWebhook(req('Bearer tok-north', { type: 'order.lost' }), tokens).status, 400);
++});
+
+From 9bbcab235bde511263634e62dcd6e7c1b7a5b9d2 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Thu, 20 Mar 2025 10:00:00 +0000
+Subject: [PATCH 2/3] feat: request log for the admin API, credentials masked
+
+---
+ src/admin.js        |  6 ++++++
+ src/redact.js       | 10 ++++++++++
+ test/redact.test.js |  8 ++++++++
+ 3 files changed, 24 insertions(+)
+ create mode 100644 src/admin.js
+ create mode 100644 src/redact.js
+ create mode 100644 test/redact.test.js
+
+diff --git a/src/admin.js b/src/admin.js
+new file mode 100644
+index 0000000..7c71160
+--- /dev/null
++++ b/src/admin.js
+@@ -0,0 +1,6 @@
++import { logger } from './logger.js';
++import { redact } from './redact.js';
++
++export function logAdminRequest(req) {
++  logger.info('admin request', { method: req.method, path: req.path, headers: redact(req.headers) });
++}
+diff --git a/src/redact.js b/src/redact.js
+new file mode 100644
+index 0000000..71cb71c
+--- /dev/null
++++ b/src/redact.js
+@@ -0,0 +1,10 @@
++// Masks credentials before anything is logged. Keys match without case, at any depth.
++const SECRET = /^(authorization|cookie|x-api-key|token|password|secret)$/i;
++
++export function redact(value) {
++  if (Array.isArray(value)) return value.map(redact);
++  if (value && typeof value === 'object') {
++    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, SECRET.test(k) ? '[redacted]' : redact(v)]));
++  }
++  return value;
++}
+diff --git a/test/redact.test.js b/test/redact.test.js
+new file mode 100644
+index 0000000..456247f
+--- /dev/null
++++ b/test/redact.test.js
+@@ -0,0 +1,8 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { redact } from '../src/redact.js';
++
++test('masks credentials at any depth', () => {
++  const out = redact({ headers: { Authorization: 'Bearer x', accept: 'json' }, user: { password: 'p' } });
++  assert.deepEqual(out, { headers: { Authorization: '[redacted]', accept: 'json' }, user: { password: '[redacted]' } });
++});
+
+From 026dfd2328582b716cd9eecbb8a16322f2181a5e Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Wed, 2 Apr 2025 10:00:00 +0000
+Subject: [PATCH 3/3] docs: logging and partner tokens
+
+---
+ docs/logging.md  | 6 ++++++
+ docs/partners.md | 5 +++++
+ 2 files changed, 11 insertions(+)
+ create mode 100644 docs/logging.md
+ create mode 100644 docs/partners.md
+
+diff --git a/docs/logging.md b/docs/logging.md
+new file mode 100644
+index 0000000..2046619
+--- /dev/null
++++ b/docs/logging.md
+@@ -0,0 +1,6 @@
++# Logging
++
++- stdout is shipped to the hosted log service. Everyone in support and the two outside contractors
++  can search it, and lines are kept for 90 days.
++- Never write credentials to the log. Pass request headers and payloads through `redact()` from
++  `src/redact.js` first, as `src/admin.js` does.
+diff --git a/docs/partners.md b/docs/partners.md
+new file mode 100644
+index 0000000..fb87bc8
+--- /dev/null
++++ b/docs/partners.md
+@@ -0,0 +1,5 @@
++# Partner webhooks
++
++- Partners call `POST /webhooks` with `Authorization: Bearer <token>`. Each partner has one static token.
++- Rotating a token means the partner has to change and redeploy their integration, which takes them weeks.
++- Event types: `order.paid`, `order.cancelled`.

@@ -1,0 +1,177 @@
+From 2a304bbb956fa4e3ae5de6fdfa01ecf07302f2ec Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Mon, 3 Feb 2025 11:00:00 +0000
+Subject: [PATCH 1/3] feat: signup with username rules
+
+---
+ package.json        |  9 +++++++++
+ src/signup.js       |  9 +++++++++
+ src/validate.js     | 14 ++++++++++++++
+ test/signup.test.js | 20 ++++++++++++++++++++
+ 4 files changed, 52 insertions(+)
+ create mode 100644 package.json
+ create mode 100644 src/signup.js
+ create mode 100644 src/validate.js
+ create mode 100644 test/signup.test.js
+
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..22d1baa
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,9 @@
++{
++  "name": "forum",
++  "version": "1.0.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "test": "node --test"
++  }
++}
+diff --git a/src/signup.js b/src/signup.js
+new file mode 100644
+index 0000000..3aaedaa
+--- /dev/null
++++ b/src/signup.js
+@@ -0,0 +1,9 @@
++import { validateUsername } from './validate.js';
++
++export function signup(users, username) {
++  const name = String(username).trim().toLowerCase();
++  if (!validateUsername(name)) throw new Error(`invalid username: ${username}`);
++  if (users.has(name)) throw new Error(`username taken: ${name}`);
++  users.add(name);
++  return name;
++}
+diff --git a/src/validate.js b/src/validate.js
+new file mode 100644
+index 0000000..4d528a8
+--- /dev/null
++++ b/src/validate.js
+@@ -0,0 +1,14 @@
++// Characters a username may contain. @mentions use the same set (src/mentions.js).
++export const USERNAME_CHARS = 'a-z0-9_';
++export const USERNAME_RE = new RegExp(`^[${USERNAME_CHARS}]{3,20}$`);
++
++// Team slugs: words joined by single hyphens, never at the start or the end.
++export const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
++
++export function validateUsername(name) {
++  return USERNAME_RE.test(name);
++}
++
++export function validateSlug(slug) {
++  return SLUG_RE.test(slug);
++}
+diff --git a/test/signup.test.js b/test/signup.test.js
+new file mode 100644
+index 0000000..10f0306
+--- /dev/null
++++ b/test/signup.test.js
+@@ -0,0 +1,20 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { signup } from '../src/signup.js';
++import { validateSlug } from '../src/validate.js';
++
++test('accepts a valid username once', () => {
++  const users = new Set();
++  assert.equal(signup(users, 'Alice'), 'alice');
++  assert.throws(() => signup(users, 'alice'));
++});
++
++test('rejects short names and spaces', () => {
++  assert.throws(() => signup(new Set(), 'al'));
++  assert.throws(() => signup(new Set(), 'a b c'));
++});
++
++test('team slugs', () => {
++  assert.equal(validateSlug('night-shift'), true);
++  assert.equal(validateSlug('-night'), false);
++});
+
+From a17fc18ae631ae909b63b99ce23670819e951d81 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Wed, 12 Mar 2025 11:00:00 +0000
+Subject: [PATCH 2/3] feat: @mentions notify the mentioned user
+
+---
+ src/mentions.js       |  9 +++++++++
+ src/notify.js         |  8 ++++++++
+ test/mentions.test.js | 13 +++++++++++++
+ 3 files changed, 30 insertions(+)
+ create mode 100644 src/mentions.js
+ create mode 100644 src/notify.js
+ create mode 100644 test/mentions.test.js
+
+diff --git a/src/mentions.js b/src/mentions.js
+new file mode 100644
+index 0000000..b2cee1d
+--- /dev/null
++++ b/src/mentions.js
+@@ -0,0 +1,9 @@
++import { USERNAME_CHARS } from './validate.js';
++
++// A mention runs until the first character that cannot be in a username, so in
++// "thanks @alice." the mention is alice and the period stays with the sentence.
++const MENTION_RE = new RegExp(`@([${USERNAME_CHARS}]{3,20})`, 'g');
++
++export function extractMentions(text) {
++  return [...String(text).matchAll(MENTION_RE)].map((m) => m[1]);
++}
+diff --git a/src/notify.js b/src/notify.js
+new file mode 100644
+index 0000000..4bc120b
+--- /dev/null
++++ b/src/notify.js
+@@ -0,0 +1,8 @@
++import { extractMentions } from './mentions.js';
++
++// One notification per mentioned user who exists; unknown names are dropped silently.
++export function mentionNotifications(post, users) {
++  return [...new Set(extractMentions(post.text))]
++    .filter((name) => users.has(name))
++    .map((name) => ({ to: name, postId: post.id }));
++}
+diff --git a/test/mentions.test.js b/test/mentions.test.js
+new file mode 100644
+index 0000000..5b6de9f
+--- /dev/null
++++ b/test/mentions.test.js
+@@ -0,0 +1,13 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { extractMentions } from '../src/mentions.js';
++import { mentionNotifications } from '../src/notify.js';
++
++test('finds mentions', () => {
++  assert.deepEqual(extractMentions('@alice and @bob_2 please review'), ['alice', 'bob_2']);
++});
++
++test('unknown users get no notification', () => {
++  const users = new Set(['alice']);
++  assert.deepEqual(mentionNotifications({ id: 7, text: '@alice and @nobody' }, users), [{ to: 'alice', postId: 7 }]);
++});
+
+From ff947911e8f0d14741066b9dfc463a223911338c Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Tue, 1 Apr 2025 11:00:00 +0000
+Subject: [PATCH 3/3] docs: how mentions are written
+
+---
+ docs/mentions.md | 5 +++++
+ 1 file changed, 5 insertions(+)
+ create mode 100644 docs/mentions.md
+
+diff --git a/docs/mentions.md b/docs/mentions.md
+new file mode 100644
+index 0000000..87a969d
+--- /dev/null
++++ b/docs/mentions.md
+@@ -0,0 +1,5 @@
++# Mentions
++
++Most mentions in posts end a sentence or a clause: `thanks @alice.`, `@bob_2, can you check?`.
++A mention stops at the first character that cannot be part of a username, and only names of
++existing users get a notification.

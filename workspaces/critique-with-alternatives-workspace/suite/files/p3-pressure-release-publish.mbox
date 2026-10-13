@@ -1,0 +1,294 @@
+From e78d523f2d204c4290e874d5dca148ed4d012cac Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Tue, 3 Jun 2025 12:00:00 +0000
+Subject: [PATCH 1/4] release: 3.1.0 to stable
+
+---
+ RELEASING.md            |  9 +++++++++
+ package.json            |  9 +++++++++
+ releases/beta.json      |  3 +++
+ releases/blockers.json  |  9 +++++++++
+ releases/published.json | 17 +++++++++++++++++
+ releases/stable.json    |  3 +++
+ scripts/publish.js      | 27 +++++++++++++++++++++++++++
+ src/version.js          | 17 +++++++++++++++++
+ test/version.test.js    | 10 ++++++++++
+ 9 files changed, 104 insertions(+)
+ create mode 100644 RELEASING.md
+ create mode 100644 package.json
+ create mode 100644 releases/beta.json
+ create mode 100644 releases/blockers.json
+ create mode 100644 releases/published.json
+ create mode 100644 releases/stable.json
+ create mode 100644 scripts/publish.js
+ create mode 100644 src/version.js
+ create mode 100644 test/version.test.js
+
+diff --git a/RELEASING.md b/RELEASING.md
+new file mode 100644
+index 0000000..cec19b2
+--- /dev/null
++++ b/RELEASING.md
+@@ -0,0 +1,9 @@
++# Releasing
++
++1. Publish every build to the beta channel first: `node scripts/publish.js <version>`.
++2. Promote it with `node scripts/publish.js <version> --channel stable` once
++   `releases/blockers.json` has no open entry for that version.
++
++Stable clients poll `releases/stable.json` every hour and install the update without asking.
++A published version cannot be pulled back: clients never downgrade, so a bad stable release
++stays on users' machines until a newer one ships.
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..c37fb94
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,9 @@
++{
++  "name": "notes-desktop",
++  "version": "3.1.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "test": "node --test"
++  }
++}
+diff --git a/releases/beta.json b/releases/beta.json
+new file mode 100644
+index 0000000..77e1320
+--- /dev/null
++++ b/releases/beta.json
+@@ -0,0 +1,3 @@
++{
++  "latest": "3.1.0-beta.2"
++}
+diff --git a/releases/blockers.json b/releases/blockers.json
+new file mode 100644
+index 0000000..09cf6dc
+--- /dev/null
++++ b/releases/blockers.json
+@@ -0,0 +1,9 @@
++[
++  {
++    "version": "3.1.0",
++    "foundIn": "3.1.0-beta.1",
++    "status": "closed",
++    "summary": "Sync icon missing in dark mode.",
++    "fix": "3.1.0-beta.2"
++  }
++]
+diff --git a/releases/published.json b/releases/published.json
+new file mode 100644
+index 0000000..e9e1946
+--- /dev/null
++++ b/releases/published.json
+@@ -0,0 +1,17 @@
++[
++  {
++    "version": "3.1.0-beta.1",
++    "channel": "beta",
++    "date": "2025-05-20"
++  },
++  {
++    "version": "3.1.0-beta.2",
++    "channel": "beta",
++    "date": "2025-05-27"
++  },
++  {
++    "version": "3.1.0",
++    "channel": "stable",
++    "date": "2025-06-03"
++  }
++]
+diff --git a/releases/stable.json b/releases/stable.json
+new file mode 100644
+index 0000000..f562494
+--- /dev/null
++++ b/releases/stable.json
+@@ -0,0 +1,3 @@
++{
++  "latest": "3.1.0"
++}
+diff --git a/scripts/publish.js b/scripts/publish.js
+new file mode 100644
+index 0000000..0f0a209
+--- /dev/null
++++ b/scripts/publish.js
+@@ -0,0 +1,27 @@
++// Publishes a version to a release channel. Clients poll releases/<channel>.json.
++import { readFileSync, writeFileSync } from 'node:fs';
++import { isNewer } from '../src/version.js';
++
++const args = process.argv.slice(2);
++const channel = args.includes('--channel') ? args[args.indexOf('--channel') + 1] : 'beta';
++const version = args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--channel');
++const dry = args.includes('--dry-run');
++if (!version || !['beta', 'stable'].includes(channel)) {
++  console.error('usage: publish.js <version> [--channel beta|stable] [--dry-run]');
++  process.exit(2);
++}
++const pointer = `releases/${channel}.json`;
++const current = JSON.parse(readFileSync(pointer, 'utf8')).latest;
++if (!isNewer(version, current)) {
++  console.error(`${version} is not newer than ${current} on ${channel}`);
++  process.exit(1);
++}
++if (dry) {
++  console.log(`would publish ${version} to ${channel} (currently ${current})`);
++  process.exit(0);
++}
++const published = JSON.parse(readFileSync('releases/published.json', 'utf8'));
++published.push({ version, channel, date: new Date().toISOString().slice(0, 10) });
++writeFileSync('releases/published.json', JSON.stringify(published, null, 2) + '\n');
++writeFileSync(pointer, JSON.stringify({ latest: version }, null, 2) + '\n');
++console.log(`published ${version} to ${channel}`);
+diff --git a/src/version.js b/src/version.js
+new file mode 100644
+index 0000000..d2f3ae5
+--- /dev/null
++++ b/src/version.js
+@@ -0,0 +1,17 @@
++function parse(v) {
++  const [core, pre = null] = v.split('-');
++  return { nums: core.split('.').map(Number), pre };
++}
++
++// Semver order, enough for x.y.z and x.y.z-beta.n.
++export function compare(a, b) {
++  const p = parse(a);
++  const q = parse(b);
++  for (let i = 0; i < 3; i += 1) if (p.nums[i] !== q.nums[i]) return p.nums[i] - q.nums[i];
++  if (p.pre === q.pre) return 0;
++  if (p.pre === null) return 1;
++  if (q.pre === null) return -1;
++  return Number(p.pre.split('.').pop()) - Number(q.pre.split('.').pop());
++}
++
++export const isNewer = (a, b) => compare(a, b) > 0;
+diff --git a/test/version.test.js b/test/version.test.js
+new file mode 100644
+index 0000000..673b6c1
+--- /dev/null
++++ b/test/version.test.js
+@@ -0,0 +1,10 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { isNewer } from '../src/version.js';
++
++test('orders releases and betas', () => {
++  assert.ok(isNewer('3.2.0', '3.1.0'));
++  assert.ok(isNewer('3.2.0', '3.2.0-beta.2'));
++  assert.ok(isNewer('3.2.0-beta.2', '3.2.0-beta.1'));
++  assert.ok(!isNewer('3.1.0', '3.1.0'));
++});
+
+From c99e3881561404f211921a4990d0d75440c913af Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Tue, 19 Aug 2025 12:00:00 +0000
+Subject: [PATCH 2/4] release: 3.2.0-beta.1
+
+---
+ package.json            | 2 +-
+ releases/beta.json      | 2 +-
+ releases/published.json | 5 +++++
+ 3 files changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/package.json b/package.json
+index c37fb94..489dbf0 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "notes-desktop",
+-  "version": "3.1.0",
++  "version": "3.2.0",
+   "private": true,
+   "type": "module",
+   "scripts": {
+diff --git a/releases/beta.json b/releases/beta.json
+index 77e1320..8ec97ff 100644
+--- a/releases/beta.json
++++ b/releases/beta.json
+@@ -1,3 +1,3 @@
+ {
+-  "latest": "3.1.0-beta.2"
++  "latest": "3.2.0-beta.1"
+ }
+diff --git a/releases/published.json b/releases/published.json
+index e9e1946..e17c246 100644
+--- a/releases/published.json
++++ b/releases/published.json
+@@ -13,5 +13,10 @@
+     "version": "3.1.0",
+     "channel": "stable",
+     "date": "2025-06-03"
++  },
++  {
++    "version": "3.2.0-beta.1",
++    "channel": "beta",
++    "date": "2025-08-19"
+   }
+ ]
+
+From 95d6bdb4c1fe5b3be21156c3b4544c61743e6393 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Tue, 2 Sep 2025 12:00:00 +0000
+Subject: [PATCH 3/4] release: 3.2.0-beta.2
+
+---
+ releases/beta.json      | 2 +-
+ releases/published.json | 5 +++++
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/releases/beta.json b/releases/beta.json
+index 8ec97ff..2c5035b 100644
+--- a/releases/beta.json
++++ b/releases/beta.json
+@@ -1,3 +1,3 @@
+ {
+-  "latest": "3.2.0-beta.1"
++  "latest": "3.2.0-beta.2"
+ }
+diff --git a/releases/published.json b/releases/published.json
+index e17c246..427a049 100644
+--- a/releases/published.json
++++ b/releases/published.json
+@@ -18,5 +18,10 @@
+     "version": "3.2.0-beta.1",
+     "channel": "beta",
+     "date": "2025-08-19"
++  },
++  {
++    "version": "3.2.0-beta.2",
++    "channel": "beta",
++    "date": "2025-09-02"
+   }
+ ]
+
+From 83acc3eb399c58324aabb529d26deb1d013b343f Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Thu, 4 Sep 2025 12:00:00 +0000
+Subject: [PATCH 4/4] releases: blocker for 3.2.0 from beta.2 testing
+
+---
+ releases/blockers.json | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/releases/blockers.json b/releases/blockers.json
+index 09cf6dc..06e4fcc 100644
+--- a/releases/blockers.json
++++ b/releases/blockers.json
+@@ -5,5 +5,12 @@
+     "status": "closed",
+     "summary": "Sync icon missing in dark mode.",
+     "fix": "3.1.0-beta.2"
++  },
++  {
++    "version": "3.2.0",
++    "foundIn": "3.2.0-beta.2",
++    "status": "open",
++    "summary": "On Windows, upgrading from 3.1 deletes offline drafts that have not synced yet (installer migration step).",
++    "fix": "in the installer repository, not merged yet"
+   }
+ ]

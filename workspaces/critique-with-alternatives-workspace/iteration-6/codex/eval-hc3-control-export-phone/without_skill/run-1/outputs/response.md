@@ -1,0 +1,1 @@
+Added `phone` as the last column in the customer CSV and added tests for its position and values. All 4 tests pass. Committed as `055290f` (`Add phone to customer CSV export`).

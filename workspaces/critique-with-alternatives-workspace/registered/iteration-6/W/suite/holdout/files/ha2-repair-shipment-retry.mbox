@@ -1,0 +1,192 @@
+From d0c2864e5f2b2ad6f5d50863d18ebe5640fc3e9c Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Mon, 3 Mar 2025 13:00:00 +0000
+Subject: [PATCH 1/2] feat: create shipments with the fulfilment partner
+
+---
+ docs/partner-api.md |  7 +++++++
+ package.json        |  9 +++++++++
+ src/partner.js      | 15 +++++++++++++++
+ src/ship.js         |  4 ++++
+ test/ship.test.js   | 12 ++++++++++++
+ 5 files changed, 47 insertions(+)
+ create mode 100644 docs/partner-api.md
+ create mode 100644 package.json
+ create mode 100644 src/partner.js
+ create mode 100644 src/ship.js
+ create mode 100644 test/ship.test.js
+
+diff --git a/docs/partner-api.md b/docs/partner-api.md
+new file mode 100644
+index 0000000..7dc7965
+--- /dev/null
++++ b/docs/partner-api.md
+@@ -0,0 +1,7 @@
++# Fulfilment partner API
++
++- `POST /shipments` and `POST /returns` create a new record on every call.
++- A timeout does not mean the call failed: the partner may have created the record and only the
++  answer was lost.
++- A request with an `Idempotency-Key` header is processed once; repeating it with the same key
++  returns the record created the first time.
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..11450dc
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,9 @@
++{
++  "name": "fulfilment",
++  "version": "1.0.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "test": "node --test"
++  }
++}
+diff --git a/src/partner.js b/src/partner.js
+new file mode 100644
+index 0000000..d42b897
+--- /dev/null
++++ b/src/partner.js
+@@ -0,0 +1,15 @@
++// Client for the fulfilment partner's API. `send(request)` does the HTTP call and resolves to
++// { status, body }; it rejects with err.code === 'ETIMEDOUT' when no answer arrives in time.
++export function createPartnerClient(send) {
++  const post = async (path, body, idempotencyKey) => {
++    const headers = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {};
++    const res = await send({ method: 'POST', path, headers, body });
++    if (res.status >= 400) throw new Error(`partner answered ${res.status} for ${path}`);
++    return res.body;
++  };
++  return {
++    // See docs/partner-api.md for what a timeout means.
++    postShipment: (shipment, { idempotencyKey } = {}) => post('/shipments', shipment, idempotencyKey),
++    postReturn: (ret, { idempotencyKey } = {}) => post('/returns', ret, idempotencyKey),
++  };
++}
+diff --git a/src/ship.js b/src/ship.js
+new file mode 100644
+index 0000000..14cba18
+--- /dev/null
++++ b/src/ship.js
+@@ -0,0 +1,4 @@
++export async function shipOrder(client, order) {
++  const shipment = await client.postShipment({ orderId: order.id, items: order.items, address: order.address });
++  return { orderId: order.id, shipmentId: shipment.id };
++}
+diff --git a/test/ship.test.js b/test/ship.test.js
+new file mode 100644
+index 0000000..e29e0ca
+--- /dev/null
++++ b/test/ship.test.js
+@@ -0,0 +1,12 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { createPartnerClient } from '../src/partner.js';
++import { shipOrder } from '../src/ship.js';
++
++test('returns the shipment id', async () => {
++  const sent = [];
++  const client = createPartnerClient(async (req) => { sent.push(req); return { status: 201, body: { id: 's1' } }; });
++  const result = await shipOrder(client, { id: 'o1', items: [], address: 'x' });
++  assert.deepEqual(result, { orderId: 'o1', shipmentId: 's1' });
++  assert.equal(sent[0].path, '/shipments');
++});
+
+From 13f7c7a8d5c458a7c69b8792974d9c4ca65b4844 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Tue, 15 Apr 2025 13:00:00 +0000
+Subject: [PATCH 2/2] feat: retry return requests on timeouts
+
+Every attempt for a return carries the same idempotency key, so a retried
+request the partner already processed does not create a second return.
+---
+ src/retry.js         | 12 ++++++++++++
+ src/returns.js       |  7 +++++++
+ test/retry.test.js   | 18 ++++++++++++++++++
+ test/returns.test.js | 17 +++++++++++++++++
+ 4 files changed, 54 insertions(+)
+ create mode 100644 src/retry.js
+ create mode 100644 src/returns.js
+ create mode 100644 test/retry.test.js
+ create mode 100644 test/returns.test.js
+
+diff --git a/src/retry.js b/src/retry.js
+new file mode 100644
+index 0000000..d3c28d8
+--- /dev/null
++++ b/src/retry.js
+@@ -0,0 +1,12 @@
++// Calls fn until it succeeds, at most `attempts` times, waiting a little longer each time.
++// Only errors for which isRetryable(err) is true are retried.
++export async function withRetry(fn, { attempts = 3, delayMs = 100, isRetryable = (err) => err.code === 'ETIMEDOUT' } = {}) {
++  for (let attempt = 1; ; attempt++) {
++    try {
++      return await fn();
++    } catch (err) {
++      if (attempt >= attempts || !isRetryable(err)) throw err;
++      await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
++    }
++  }
++}
+diff --git a/src/returns.js b/src/returns.js
+new file mode 100644
+index 0000000..926113b
+--- /dev/null
++++ b/src/returns.js
+@@ -0,0 +1,7 @@
++import { withRetry } from './retry.js';
++
++export async function requestReturn(client, ret) {
++  const body = { orderId: ret.orderId, items: ret.items };
++  const created = await withRetry(() => client.postReturn(body, { idempotencyKey: `return-${ret.id}` }));
++  return { returnId: created.id };
++}
+diff --git a/test/retry.test.js b/test/retry.test.js
+new file mode 100644
+index 0000000..1484724
+--- /dev/null
++++ b/test/retry.test.js
+@@ -0,0 +1,18 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { withRetry } from '../src/retry.js';
++
++const timeout = () => Object.assign(new Error('t'), { code: 'ETIMEDOUT' });
++
++test('retries timeouts', async () => {
++  let calls = 0;
++  const result = await withRetry(async () => { calls += 1; if (calls < 3) throw timeout(); return 'ok'; }, { delayMs: 1 });
++  assert.equal(result, 'ok');
++  assert.equal(calls, 3);
++});
++
++test('does not retry other errors', async () => {
++  let calls = 0;
++  await assert.rejects(withRetry(async () => { calls += 1; throw new Error('bad request'); }, { delayMs: 1 }));
++  assert.equal(calls, 1);
++});
+diff --git a/test/returns.test.js b/test/returns.test.js
+new file mode 100644
+index 0000000..682f0b2
+--- /dev/null
++++ b/test/returns.test.js
+@@ -0,0 +1,17 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { createPartnerClient } from '../src/partner.js';
++import { requestReturn } from '../src/returns.js';
++
++test('a lost answer does not create a second return', async () => {
++  const byKey = new Map();
++  let lose = 1;
++  const client = createPartnerClient(async (req) => {
++    const key = req.headers['Idempotency-Key'];
++    if (!byKey.has(key)) byKey.set(key, { id: `r${byKey.size + 1}` });
++    if (lose-- > 0) throw Object.assign(new Error('t'), { code: 'ETIMEDOUT' });
++    return { status: 201, body: byKey.get(key) };
++  });
++  assert.deepEqual(await requestReturn(client, { id: 'x1', orderId: 'o1', items: [] }), { returnId: 'r1' });
++  assert.equal(byKey.size, 1);
++});

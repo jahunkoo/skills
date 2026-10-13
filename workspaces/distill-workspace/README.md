@@ -75,7 +75,7 @@ The 95% confidence intervals depend on run order. The published intervals match 
 
 ## Running it again
 
-From the repository root, the sequence in [eval-harness/README.md](../../eval-harness/README.md) is prepare, run, check, grade, then aggregate. `prepare` prints a workspace path; pass that path as `<ws>`.
+From the repository root, the sequence in [eval-harness/README.md](../../eval-harness/README.md) is prepare, run, check, grade, then aggregate. `prepare` prints a workspace path; pass that path as `<ws>`. These commands re-run the evaluation, not the skill. The evaluation runner starts each agent CLI unattended, with permission prompts off and your environment inherited, so run it in a disposable VM or container. Installing and using the skill involves none of this.
 
 ```sh
 python3 eval-harness/harness.py prepare --config workspaces/distill-workspace/eval-config.json --sets dev,holdout --kind confirm --label <label>

@@ -1,0 +1,3 @@
+I wouldn’t make that change. The scheduler treats exit code 0 as a successful import, so it would run `publish-orders` against the previous night’s orders and suppress the import’s only alert.
+
+The failure history points to a better fix: retry `NoExportYetError` for up to 90 minutes, then exit nonzero if the export still hasn’t arrived. Malformed rows and write failures should fail immediately. The scheduler’s existing retry setting is a simpler option, though it would also delay alerts for malformed data. I made no changes.

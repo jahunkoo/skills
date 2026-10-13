@@ -1,0 +1,200 @@
+From dbaa21684cbffcd37722c1819a9762287e516c44 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Tue, 1 Jul 2025 12:00:00 +0000
+Subject: [PATCH 1/2] feat: customer CSV export
+
+---
+ data/customers.json | 30 ++++++++++++++++++++++++++++++
+ package.json        |  9 +++++++++
+ src/csv.js          | 30 ++++++++++++++++++++++++++++++
+ src/export.js       |  7 +++++++
+ test/export.test.js | 18 ++++++++++++++++++
+ 5 files changed, 94 insertions(+)
+ create mode 100644 data/customers.json
+ create mode 100644 package.json
+ create mode 100644 src/csv.js
+ create mode 100644 src/export.js
+ create mode 100644 test/export.test.js
+
+diff --git a/data/customers.json b/data/customers.json
+new file mode 100644
+index 0000000..1cb547d
+--- /dev/null
++++ b/data/customers.json
+@@ -0,0 +1,30 @@
++[
++  {
++    "id": 1,
++    "name": "Harbour Books, Ltd",
++    "email": "orders@harbour.example.invalid",
++    "city": "Portside",
++    "phone": "555-0101"
++  },
++  {
++    "id": 2,
++    "name": "Corner Cafe",
++    "email": "hello@corner.example.invalid",
++    "city": "Old Town",
++    "phone": "555-0102"
++  },
++  {
++    "id": 3,
++    "name": "North Garden",
++    "email": "info@north.example.invalid",
++    "city": "Hillview",
++    "phone": null
++  },
++  {
++    "id": 4,
++    "name": "Blue Door Studio",
++    "email": "studio@bluedoor.example.invalid",
++    "city": "Portside",
++    "phone": "555-0104"
++  }
++]
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..fd2f380
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,9 @@
++{
++  "name": "crm-export",
++  "version": "1.0.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "test": "node --test"
++  }
++}
+diff --git a/src/csv.js b/src/csv.js
+new file mode 100644
+index 0000000..512a915
+--- /dev/null
++++ b/src/csv.js
+@@ -0,0 +1,30 @@
++// Quotes a field when it holds a comma, a quote or a line break.
++export function field(value) {
++  const s = value == null ? '' : String(value);
++  return /[",\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
++}
++
++export function toCsv(header, rows) {
++  return [header, ...rows].map((row) => row.map(field).join(',')).join('\n') + '\n';
++}
++
++// Splits CSV text into rows of fields; handles quoted fields.
++export function parseCsv(text) {
++  const rows = [];
++  let row = [];
++  let cur = '';
++  let quoted = false;
++  for (let i = 0; i < text.length; i++) {
++    const ch = text[i];
++    if (quoted) {
++      if (ch === '"' && text[i + 1] === '"') { cur += '"'; i++; }
++      else if (ch === '"') quoted = false;
++      else cur += ch;
++    } else if (ch === '"') quoted = true;
++    else if (ch === ',') { row.push(cur); cur = ''; }
++    else if (ch === '\n') { row.push(cur); rows.push(row); row = []; cur = ''; }
++    else cur += ch;
++  }
++  if (cur || row.length) { row.push(cur); rows.push(row); }
++  return rows;
++}
+diff --git a/src/export.js b/src/export.js
+new file mode 100644
+index 0000000..0dc5fe7
+--- /dev/null
++++ b/src/export.js
+@@ -0,0 +1,7 @@
++import { toCsv } from './csv.js';
++
++const COLUMNS = ['id', 'name', 'email', 'city'];
++
++export function exportCustomers(customers) {
++  return toCsv(COLUMNS, customers.map((c) => COLUMNS.map((col) => c[col])));
++}
+diff --git a/test/export.test.js b/test/export.test.js
+new file mode 100644
+index 0000000..3c59ee1
+--- /dev/null
++++ b/test/export.test.js
+@@ -0,0 +1,18 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
++import { exportCustomers } from '../src/export.js';
++import { parseCsv } from '../src/csv.js';
++
++const customers = JSON.parse(readFileSync(new URL('../data/customers.json', import.meta.url), 'utf8'));
++
++test('starts with the id, name, email and city columns', () => {
++  const [header] = parseCsv(exportCustomers(customers));
++  assert.deepEqual(header.slice(0, 4), ['id', 'name', 'email', 'city']);
++});
++
++test('a name with a comma stays one field', () => {
++  const rows = parseCsv(exportCustomers(customers));
++  assert.equal(rows[1][1], 'Harbour Books, Ltd');
++  assert.equal(rows.length, customers.length + 1);
++});
+
+From 4b5ee6ba5464b05c050cd10375db2cc7ebe78b65 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Tue, 15 Jul 2025 12:00:00 +0000
+Subject: [PATCH 2/2] feat: check the export the way the finance import reads
+ it
+
+---
+ docs/export.md            |  5 +++++
+ scripts/check-import.js   |  7 +++++++
+ test/check-import.test.js | 12 ++++++++++++
+ 3 files changed, 24 insertions(+)
+ create mode 100644 docs/export.md
+ create mode 100644 scripts/check-import.js
+ create mode 100644 test/check-import.test.js
+
+diff --git a/docs/export.md b/docs/export.md
+new file mode 100644
+index 0000000..538ecb5
+--- /dev/null
++++ b/docs/export.md
+@@ -0,0 +1,5 @@
++# Customer export
++
++- The finance team imports the export every night. Their import maps columns by header name and
++  ignores columns it does not know; `scripts/check-import.js` reads the file the same way.
++- Column order is free, but keep the existing column names.
+diff --git a/scripts/check-import.js b/scripts/check-import.js
+new file mode 100644
+index 0000000..990e9cd
+--- /dev/null
++++ b/scripts/check-import.js
+@@ -0,0 +1,7 @@
++// Reads an export the way the finance import does: columns by header name, unknown columns ignored.
++import { parseCsv } from '../src/csv.js';
++
++export function readForFinance(text, wanted = ['id', 'name', 'email']) {
++  const [header, ...rows] = parseCsv(text);
++  return rows.map((row) => Object.fromEntries(wanted.map((col) => [col, row[header.indexOf(col)]])));
++}
+diff --git a/test/check-import.test.js b/test/check-import.test.js
+new file mode 100644
+index 0000000..3b11878
+--- /dev/null
++++ b/test/check-import.test.js
+@@ -0,0 +1,12 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
++import { exportCustomers } from '../src/export.js';
++import { readForFinance } from '../scripts/check-import.js';
++
++const customers = JSON.parse(readFileSync(new URL('../data/customers.json', import.meta.url), 'utf8'));
++
++test('finance reads id, name and email by header', () => {
++  const rows = readForFinance(exportCustomers(customers));
++  assert.deepEqual(rows[0], { id: '1', name: 'Harbour Books, Ltd', email: 'orders@harbour.example.invalid' });
++});

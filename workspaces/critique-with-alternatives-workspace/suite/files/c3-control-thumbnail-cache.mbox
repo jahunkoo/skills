@@ -1,0 +1,147 @@
+From d71ef15b25099e5d4e51e350d7d89bdc3c936b81 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Mon, 7 Apr 2025 15:00:00 +0000
+Subject: [PATCH 1/2] feat: thumbnails generated on first request
+
+---
+ .gitignore          |  1 +
+ README.md           |  4 ++++
+ package.json        |  9 +++++++++
+ src/thumbs.js       | 17 +++++++++++++++++
+ test/thumbs.test.js | 14 ++++++++++++++
+ 5 files changed, 45 insertions(+)
+ create mode 100644 .gitignore
+ create mode 100644 README.md
+ create mode 100644 package.json
+ create mode 100644 src/thumbs.js
+ create mode 100644 test/thumbs.test.js
+
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..c2658d7
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1 @@
++node_modules/
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..3b8c508
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,4 @@
++# gallery
++
++Photos live in `photos/`. `src/thumbs.js` renders a thumbnail the first time one is requested and
++keeps it in `cache/thumbnails/`; later requests read it from there.
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..658bbbd
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,9 @@
++{
++  "name": "gallery",
++  "version": "1.0.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "test": "node --test"
++  }
++}
+diff --git a/src/thumbs.js b/src/thumbs.js
+new file mode 100644
+index 0000000..452a936
+--- /dev/null
++++ b/src/thumbs.js
+@@ -0,0 +1,17 @@
++import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
++import { join } from 'node:path';
++
++export const CACHE_DIR = 'cache/thumbnails';
++
++export function renderThumb(photo) {
++  return `thumb(${photo.trim().slice(0, 12)})\n`;
++}
++
++export function getThumb(name, root = '.') {
++  const cached = join(root, CACHE_DIR, `${name}.txt`);
++  if (existsSync(cached)) return readFileSync(cached, 'utf8');
++  const thumb = renderThumb(readFileSync(join(root, 'photos', `${name}.txt`), 'utf8'));
++  mkdirSync(join(root, CACHE_DIR), { recursive: true });
++  writeFileSync(cached, thumb);
++  return thumb;
++}
+diff --git a/test/thumbs.test.js b/test/thumbs.test.js
+new file mode 100644
+index 0000000..31cb310
+--- /dev/null
++++ b/test/thumbs.test.js
+@@ -0,0 +1,14 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
++import { tmpdir } from 'node:os';
++import { join } from 'node:path';
++import { getThumb } from '../src/thumbs.js';
++
++test('renders a missing thumbnail and caches it', () => {
++  const root = mkdtempSync(join(tmpdir(), 'thumbs-'));
++  mkdirSync(join(root, 'photos'));
++  writeFileSync(join(root, 'photos', 'x.txt'), 'PHOTO a test photo\n');
++  assert.equal(getThumb('x', root), 'thumb(PHOTO a test)\n');
++  assert.ok(existsSync(join(root, 'cache', 'thumbnails', 'x.txt')));
++});
+
+From 160f91b7336337b72493dd68901dde853b9af8b2 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Wed, 9 Apr 2025 15:00:00 +0000
+Subject: [PATCH 2/2] feat: sample photos
+
+---
+ cache/thumbnails/harbour.txt | 1 +
+ cache/thumbnails/market.txt  | 1 +
+ photos/bridge.txt            | 1 +
+ photos/harbour.txt           | 1 +
+ photos/market.txt            | 1 +
+ 5 files changed, 5 insertions(+)
+ create mode 100644 cache/thumbnails/harbour.txt
+ create mode 100644 cache/thumbnails/market.txt
+ create mode 100644 photos/bridge.txt
+ create mode 100644 photos/harbour.txt
+ create mode 100644 photos/market.txt
+
+diff --git a/cache/thumbnails/harbour.txt b/cache/thumbnails/harbour.txt
+new file mode 100644
+index 0000000..35dd84f
+--- /dev/null
++++ b/cache/thumbnails/harbour.txt
+@@ -0,0 +1 @@
++thumb(PHOTO harbou)
+diff --git a/cache/thumbnails/market.txt b/cache/thumbnails/market.txt
+new file mode 100644
+index 0000000..46922fa
+--- /dev/null
++++ b/cache/thumbnails/market.txt
+@@ -0,0 +1 @@
++thumb(PHOTO market)
+diff --git a/photos/bridge.txt b/photos/bridge.txt
+new file mode 100644
+index 0000000..5c4d698
+--- /dev/null
++++ b/photos/bridge.txt
+@@ -0,0 +1 @@
++PHOTO bridge in fog
+diff --git a/photos/harbour.txt b/photos/harbour.txt
+new file mode 100644
+index 0000000..fc468d1
+--- /dev/null
++++ b/photos/harbour.txt
+@@ -0,0 +1 @@
++PHOTO harbour at dawn
+diff --git a/photos/market.txt b/photos/market.txt
+new file mode 100644
+index 0000000..ba3d75f
+--- /dev/null
++++ b/photos/market.txt
+@@ -0,0 +1 @@
++PHOTO market stalls

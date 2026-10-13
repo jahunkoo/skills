@@ -1,0 +1,128 @@
+From 89b9acd49d05ddd445ba5734592139ac3d2f59a6 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Mon, 3 Feb 2025 13:00:00 +0000
+Subject: [PATCH 1/3] feat: ticket attachments
+
+---
+ package.json        |  9 +++++++++
+ src/limits.js       |  2 ++
+ src/upload.js       |  9 +++++++++
+ test/upload.test.js | 18 ++++++++++++++++++
+ 4 files changed, 38 insertions(+)
+ create mode 100644 package.json
+ create mode 100644 src/limits.js
+ create mode 100644 src/upload.js
+ create mode 100644 test/upload.test.js
+
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..a63c690
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,9 @@
++{
++  "name": "helpdesk",
++  "version": "1.0.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "test": "node --test"
++  }
++}
+diff --git a/src/limits.js b/src/limits.js
+new file mode 100644
+index 0000000..1b07d64
+--- /dev/null
++++ b/src/limits.js
+@@ -0,0 +1,2 @@
++export const MAX_UPLOAD_MB = 10;
++export const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'video/mp4', 'application/pdf'];
+diff --git a/src/upload.js b/src/upload.js
+new file mode 100644
+index 0000000..7cf76c5
+--- /dev/null
++++ b/src/upload.js
+@@ -0,0 +1,9 @@
++import { ALLOWED_TYPES, MAX_UPLOAD_MB } from './limits.js';
++
++const MB = 1024 * 1024;
++
++export function checkUpload({ sizeBytes, type }) {
++  if (!ALLOWED_TYPES.includes(type)) return { ok: false, reason: `type ${type} is not allowed` };
++  if (sizeBytes > MAX_UPLOAD_MB * MB) return { ok: false, reason: `larger than ${MAX_UPLOAD_MB} MB` };
++  return { ok: true };
++}
+diff --git a/test/upload.test.js b/test/upload.test.js
+new file mode 100644
+index 0000000..7231709
+--- /dev/null
++++ b/test/upload.test.js
+@@ -0,0 +1,18 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { MAX_UPLOAD_MB } from '../src/limits.js';
++import { checkUpload } from '../src/upload.js';
++
++const MB = 1024 * 1024;
++
++test('accepts a file at the limit', () => {
++  assert.equal(checkUpload({ sizeBytes: MAX_UPLOAD_MB * MB, type: 'video/mp4' }).ok, true);
++});
++
++test('rejects a file over the limit', () => {
++  assert.equal(checkUpload({ sizeBytes: MAX_UPLOAD_MB * MB + 1, type: 'video/mp4' }).ok, false);
++});
++
++test('rejects other types', () => {
++  assert.equal(checkUpload({ sizeBytes: 1, type: 'application/zip' }).ok, false);
++});
+
+From 1fb462c9019a01abf917b3c0a8f2fc730ca749db Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Mon, 10 Feb 2025 13:00:00 +0000
+Subject: [PATCH 2/3] deploy: reverse proxy config
+
+---
+ deploy/proxy.conf | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+ create mode 100644 deploy/proxy.conf
+
+diff --git a/deploy/proxy.conf b/deploy/proxy.conf
+new file mode 100644
+index 0000000..0dd857d
+--- /dev/null
++++ b/deploy/proxy.conf
+@@ -0,0 +1,10 @@
++# Reverse proxy in front of the helpdesk app.
++server {
++  listen 80;
++  # Hard cap on request bodies. Keep it above MAX_UPLOAD_MB in src/limits.js.
++  client_max_body_size 50m;
++
++  location / {
++    proxy_pass http://app;
++  }
++}
+
+From d08d49e09f8f5efb903c995a9c848f8a7e9e2c70 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Mon, 3 Mar 2025 13:00:00 +0000
+Subject: [PATCH 3/3] docs: attachments
+
+---
+ docs/uploads.md | 6 ++++++
+ 1 file changed, 6 insertions(+)
+ create mode 100644 docs/uploads.md
+
+diff --git a/docs/uploads.md b/docs/uploads.md
+new file mode 100644
+index 0000000..c9fa825
+--- /dev/null
++++ b/docs/uploads.md
+@@ -0,0 +1,6 @@
++# Attachments
++
++- The limit users see is `MAX_UPLOAD_MB` in `src/limits.js`. The reverse proxy
++  (`deploy/proxy.conf`) has a hard cap of 50 MB above it.
++- Attachments go to object storage. There is no per-ticket quota.
++- Allowed types: PNG, JPEG, MP4 video and PDF.

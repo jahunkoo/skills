@@ -1,0 +1,5 @@
+I've committed the fix as `97583bc`. `createUser()` in `src/users.js` now lowercases the email after trimming it, and uses that lowercase address for both the duplicate check and the saved record. Signing up as `Bob@Example.invalid` and then `bob@example.invalid` now throws "email already registered" instead of creating a second account.
+
+I made one change you didn't ask for: the duplicate check also lowercases the stored addresses before comparing. The data in the repo is already lowercase, so this only matters for a store that still has mixed-case addresses. Sign-in (`findByEmail`) already ignores case the same way.
+
+I added two tests: one that a mixed-case address is saved in lowercase, and one that an address differing only in case is rejected. All 5 tests pass. `data/users.json` has no existing duplicate accounts, so no data needs cleaning up.

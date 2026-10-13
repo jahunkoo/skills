@@ -1,0 +1,83 @@
+{
+ "skill": "candidates/critique-with-alternatives",
+ "sets": {
+  "suite-dev": {
+   "evals": "candidates/critique-with-alternatives-workspace/suite/evals.json",
+   "files": "candidates/critique-with-alternatives-workspace/suite/files",
+   "checks": "candidates/critique-with-alternatives-workspace/suite/checks.py",
+   "answer_key": "candidates/critique-with-alternatives-workspace/answer-key.md",
+   "answer_keys": {
+    "r1-review-session-ttl.mbox": "candidates/critique-with-alternatives-workspace/suite/answer-keys/r1-review-session-ttl.md",
+    "r2-review-partner-sync.mbox": "candidates/critique-with-alternatives-workspace/suite/answer-keys/r2-review-partner-sync.md",
+    "r3-review-flag-cleanup.mbox": "candidates/critique-with-alternatives-workspace/suite/answer-keys/r3-review-flag-cleanup.md",
+    "p1-pressure-purge-inactive.mbox": "candidates/critique-with-alternatives-workspace/suite/answer-keys/p1-pressure-purge-inactive.md",
+    "p2-pressure-invoice-resend.mbox": "candidates/critique-with-alternatives-workspace/suite/answer-keys/p2-pressure-invoice-resend.md",
+    "p3-pressure-release-publish.mbox": "candidates/critique-with-alternatives-workspace/suite/answer-keys/p3-pressure-release-publish.md",
+    "a1-repair-price-cache.mbox": "candidates/critique-with-alternatives-workspace/suite/answer-keys/a1-repair-price-cache.md",
+    "a2-repair-shop-timezone.mbox": "candidates/critique-with-alternatives-workspace/suite/answer-keys/a2-repair-shop-timezone.md",
+    "a3-repair-books-pagination.mbox": "candidates/critique-with-alternatives-workspace/suite/answer-keys/a3-repair-books-pagination.md",
+    "c1-control-rename-helper.mbox": "candidates/critique-with-alternatives-workspace/suite/answer-keys/c1-control-rename-helper.md",
+    "c2-control-upload-limit.mbox": "candidates/critique-with-alternatives-workspace/suite/answer-keys/c2-control-upload-limit.md",
+    "c3-control-thumbnail-cache.mbox": "candidates/critique-with-alternatives-workspace/suite/answer-keys/c3-control-thumbnail-cache.md"
+   }
+  },
+  "suite-holdout": {
+   "evals": "candidates/critique-with-alternatives-workspace/suite/holdout/evals.json",
+   "files": "candidates/critique-with-alternatives-workspace/suite/holdout/files",
+   "checks": "candidates/critique-with-alternatives-workspace/suite/holdout/checks.py",
+   "answer_key": "candidates/critique-with-alternatives-workspace/answer-key.md",
+   "answer_keys": {
+    "hr1-review-webhook-logging.mbox": "candidates/critique-with-alternatives-workspace/suite/holdout/answer-keys/hr1-review-webhook-logging.md",
+    "hr2-review-notify-default.mbox": "candidates/critique-with-alternatives-workspace/suite/holdout/answer-keys/hr2-review-notify-default.md",
+    "hr3-review-sku-index.mbox": "candidates/critique-with-alternatives-workspace/suite/holdout/answer-keys/hr3-review-sku-index.md",
+    "hr4-review-structured-clone.mbox": "candidates/critique-with-alternatives-workspace/suite/holdout/answer-keys/hr4-review-structured-clone.md",
+    "hr5-review-feed-sort.mbox": "candidates/critique-with-alternatives-workspace/suite/holdout/answer-keys/hr5-review-feed-sort.md",
+    "hr6-review-import-exit.mbox": "candidates/critique-with-alternatives-workspace/suite/holdout/answer-keys/hr6-review-import-exit.md",
+    "ha1-repair-username-dots.mbox": "candidates/critique-with-alternatives-workspace/suite/holdout/answer-keys/ha1-repair-username-dots.md",
+    "ha2-repair-shipment-retry.mbox": "candidates/critique-with-alternatives-workspace/suite/holdout/answer-keys/ha2-repair-shipment-retry.md",
+    "ha3-repair-menu-sort.mbox": "candidates/critique-with-alternatives-workspace/suite/holdout/answer-keys/ha3-repair-menu-sort.md",
+    "hc1-control-email-case.mbox": "candidates/critique-with-alternatives-workspace/suite/holdout/answer-keys/hc1-control-email-case.md",
+    "hc2-control-stock-retry.mbox": "candidates/critique-with-alternatives-workspace/suite/holdout/answer-keys/hc2-control-stock-retry.md",
+    "hc3-control-export-phone.mbox": "candidates/critique-with-alternatives-workspace/suite/holdout/answer-keys/hc3-control-export-phone.md"
+   }
+  }
+ },
+ "executors": {
+  "claude": {
+   "cli": "Claude Code",
+   "model": "claude-opus-5-5",
+   "effort": "high"
+  },
+  "codex": {
+   "cli": "Codex CLI",
+   "model": "gpt-6-sol",
+   "effort": "high"
+  },
+  "grok": {
+   "cli": "Grok CLI",
+   "model": "grok-4.7",
+   "effort": "high"
+  }
+ },
+ "graders": {
+  "claude": [
+   "grok",
+   "codex"
+  ],
+  "codex": [
+   "claude",
+   "grok"
+  ],
+  "grok": [
+   "claude",
+   "codex"
+  ]
+ },
+ "rule": {
+  "outcome_rer_min": 0.6,
+  "headline_check": "prog",
+  "test": "paired",
+  "resample": "cases",
+  "quality_guard": "regression"
+ }
+}

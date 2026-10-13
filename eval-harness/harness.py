@@ -8,8 +8,9 @@
   harness.py grade     --ws W [--jobs 3] [--graders codex,grok] [--claude-login]
   harness.py aggregate --ws W --out WORKSPACE/iteration-N [--ledger FILE] [--note TEXT]
   harness.py status    --ws W
+  harness.py room      --ws W [--ws W2 ...] [--out FILE]
 
-The workspace W (default: $TMPDIR/<skill>-eval/<label>) lives outside the repo and holds fixtures, raw output,
+The workspace W (default: ~/.cache/eval-harness/<skill>-eval/<label>) lives outside the repo and holds fixtures, raw output,
 the arm mapping and grader packets. Only `aggregate` writes into the repo, and what it writes carries no times
 of day, session ids or local paths.
 """
@@ -73,7 +74,10 @@ Reply with exactly one JSON object and nothing else:
 
 
 def ws_default(cfg, label):
-    return Path(os.environ.get("TMPDIR", "/tmp")).resolve() / f"{Path(cfg['skill']).name}-eval" / label
+    # A cache folder, not $TMPDIR, which macOS empties on reboot; outside the repo, so a run cannot walk up to the
+    # answer keys or the held-out evals.
+    cache = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache")
+    return cache.resolve() / "eval-harness" / f"{Path(cfg['skill']).name}-eval" / label
 
 
 def control(ws):
@@ -92,9 +96,12 @@ def cmd_prepare(a):
     skill_dir = REPO / a.skill if a.skill else cfg["skill_dir"]  # e.g. a candidate edition against the same evals
     skill_md = skill_dir / "SKILL.md"
     only_evals = set(a.evals.split(",")) if a.evals else None
+    arms = a.arms.split(",") if a.arms else list(ARMS)
+    if not set(arms) <= set(ARMS):
+        raise SystemExit(f"--arms takes {', '.join(ARMS)}")
     combos = [(ex, s, ev, arm, rep) for ex in executors for s in sets for ev in cfg["sets"][s]["evals"]
               if not only_evals or ev["name"] in only_evals
-              for arm in ARMS for rep in range(1, a.replicates + 1)]
+              for arm in arms for rep in range(1, a.replicates + 1)]
     ids = list(range(1, len(combos) + 1))
     random.Random(a.seed).shuffle(ids)
     mapping = []
@@ -113,7 +120,7 @@ def cmd_prepare(a):
                         "arm": arm, "replicate": rep, "fixture": ev["fixture"], "initial_head": head})
     manifest = {
         "label": a.label, "kind": a.kind, "date_utc": utc_date(), "config": str(Path(a.config).resolve().relative_to(REPO)),
-        "skill": str(skill_dir.relative_to(REPO)), "skill_sha256": sha256(skill_md), "sets": sets, "replicates": a.replicates,
+        "skill": str(skill_dir.relative_to(REPO)), "skill_sha256": sha256(skill_md), "sets": sets, "replicates": a.replicates, "arms": arms,
         "executors": {ex: cfg["executors"][ex] for ex in executors},
         "graders": {ex: cfg["graders"][ex] for ex in executors},
         "evals_sha256": {s: sha256(cfg["sets"][s]["evals_file"]) for s in sets},
@@ -178,19 +185,29 @@ def cmd_run(a):
 
 # ---------------------------------------------------------------- check
 
+def context_dir(ws, set_name, fixture=None):
+    """Grading context (fixture, history, answer key): one per fixture, so a set may mix fixtures.
+    A workspace checked by an older harness kept one per set, in the set folder itself."""
+    base = ws / "blind" / "_context" / set_name
+    if fixture is None or (base / "answer-key.md").exists():
+        return base
+    return base / Path(fixture).stem
+
+
 def cmd_check(a):
     ws, manifest, mapping, cfg = load_ws(a.ws)
     blind = ws / "blind"
-    for s in manifest["sets"]:
-        ctx = blind / "_context" / s
+    for s, fixture in sorted({(m["set"], m["fixture"]) for m in mapping}):  # one context per fixture
+        ctx = context_dir(ws, s, fixture)
         if not ctx.exists():
-            sample = next(m for m in mapping if m["set"] == s)
+            sample = next(m for m in mapping if m["set"] == s and m["fixture"] == fixture)
             fx = ws / "runs" / sample["run_id"] / "_pristine"
-            make_fixture(cfg["sets"][s]["files"] / sample["fixture"], fx)
+            make_fixture(cfg["sets"][s]["files"] / fixture, fx)
             clean_copy(fx, ctx / "fixture")
             (ctx / "history.txt").write_text(history(fx))
             shutil.rmtree(fx)
-            shutil.copy2(cfg["sets"][s]["answer_key"], ctx / "answer-key.md")
+            st = cfg["sets"][s]
+            shutil.copy2(st["answer_keys"].get(fixture, st["answer_key"]), ctx / "answer-key.md")
     for m in mapping:
         res = load_json(control(ws) / "results" / f"{m['run_id']}.json")
         if not res or not res.get("ok"):
@@ -246,7 +263,7 @@ def grade_one(ws, m, grader, manifest, cfg, claude_login):
     out, missing = None, []
     try:
         shutil.copytree(ws / "blind" / m["run_id"], gdir)
-        shutil.copytree(ws / "blind" / "_context" / m["set"], gdir / "context")
+        shutil.copytree(context_dir(ws, m["set"], m.get("fixture")), gdir / "context")
         for _ in (1, 2):  # a reply that cannot be parsed, or that leaves out an assertion, is asked for once more
             r = backends.run(grader, gdir, grader_prompt(ev, s), g["model"], g.get("effort"), "grader",
                              control(ws) / "raw-grades" / grader / m["run_id"], tmp / "home", (), claude_login)
@@ -259,7 +276,8 @@ def grade_one(ws, m, grader, manifest, cfg, claude_login):
     ok = bool(out) and not missing
     error = None if ok else (f"incomplete grade, missing {', '.join(missing)}" if out else (r["error"] or "unparseable reply"))
     write_json(control(ws) / "grades" / grader / f"{m['run_id']}.json",
-               {"grader": grader, "model": g["model"], "result": out, "ok": ok, "duration_s": r["duration_s"], "error": error})
+               {"grader": grader, "model": g["model"], "result": out, "ok": ok, "duration_s": r["duration_s"], "error": error,
+                **({"auth_slot": r["auth_slot"]} if r.get("auth_slot") else {})})
     return m["run_id"], grader, ok
 
 
@@ -279,6 +297,12 @@ def grade_problems(out, ev):
     return missing_ids(out, ev) + (["holistic"] if bad_score else [])
 
 
+def graded(ev):
+    """Whether an eval is graded at all: one with programmatic assertions only (a repair or control case decided by
+    its checks) gets no grader and no quality score."""
+    return any(p["check"] == "judge" for p in ev["parsed"])
+
+
 def grade_gaps(ws, manifest, mapping, cfg):
     """Runs that enter the aggregate without a complete grade from every assigned grader: a missing or non-bool
     verdict, or no holistic score from 1 to 5."""
@@ -288,6 +312,8 @@ def grade_gaps(ws, manifest, mapping, cfg):
         if not res.get("ok") or not (control(ws) / "prog" / f"{m['run_id']}.json").exists():
             continue
         ev = next(e for e in cfg["sets"][m["set"]]["evals"] if e["id"] == m["eval_id"])
+        if not graded(ev):
+            continue
         for g in manifest["graders"][m["executor"]]:
             out = (load_json(control(ws) / "grades" / g / f"{m['run_id']}.json") or {}).get("result")
             missing = grade_problems(out, ev)
@@ -301,6 +327,8 @@ def cmd_grade(a):
     jobs = []
     for m in mapping:
         if not (control(ws) / "prog" / f"{m['run_id']}.json").exists():
+            continue
+        if not graded(next(e for e in cfg["sets"][m["set"]]["evals"] if e["id"] == m["eval_id"])):
             continue
         for grader in manifest["graders"][m["executor"]]:
             if a.graders and grader not in a.graders.split(","):
@@ -324,7 +352,7 @@ def cmd_grade(a):
 # Fields beyond the spec (per-assertion kind and votes, per-agent results, CI, p, criteria) are additions.
 
 METRICS = ("pass_rate", "time_seconds", "tokens", "outcome_pass_rate", "safety_pass_rate", "procedure_pass_rate",
-           "quality_score")
+           "control_pass_rate", "judge_outcome_pass_rate", "quality_score")
 SAFETY = ("gate", "scope")
 
 
@@ -353,8 +381,9 @@ def assertion_rows(ws, m, ev, graders):
     return rows, scores, {g: grades[g].get("counts") for g in graders}
 
 
-def kept_rate(rows, kinds=None):
-    return stats.rate([r["passed"] for r in rows if not r["excluded"] and (kinds is None or r["kind"] in kinds)])
+def kept_rate(rows, kinds=None, check=None):
+    return stats.rate([r["passed"] for r in rows if not r["excluded"] and (kinds is None or r["kind"] in kinds)
+                       and (check is None or r["check"] == check)])
 
 
 def r4(x):
@@ -377,8 +406,19 @@ def outcome_cells(rs):
     return cells
 
 
-def outcome_test(rs, agents):
-    """Outcome pass rate, mean over agents: with, without, difference, 95% bootstrap CI, stratified exact p."""
+def case_diffs(rs, agent):
+    """One agent's per-case differences: mean with − mean without over each eval's runs, for evals with both arms."""
+    out = []
+    for (ag, _), (w, wo) in sorted(outcome_cells(rs).items()):
+        w, wo = [x for x in w if x is not None], [x for x in wo if x is not None]
+        if ag == agent and w and wo:
+            out.append(statistics.mean(w) - statistics.mean(wo))
+    return out
+
+
+def outcome_test(rs, agents, rule=stats.RULE):
+    """Outcome pass rate, mean over agents: with, without, difference, 95% bootstrap CI, stratified p. rule["test"]
+    and rule["resample"] choose the test and the interval for the design (see stats)."""
     per = [run_summary([r for r in rs if r["agent"] == ag]) for ag in agents]
     per = [s for s in per if s["delta"]["outcome_pass_rate"] is not None]
     if not per:
@@ -386,13 +426,23 @@ def outcome_test(rs, agents):
     arm = {a: r4(statistics.mean(s[a]["outcome_pass_rate"]["mean"] for s in per)) for a in ARMS}
     strata = [([r["outcome_pass_rate"] for r in rs if r["agent"] == ag and r["arm"] == "with_skill"],
                [r["outcome_pass_rate"] for r in rs if r["agent"] == ag and r["arm"] == "without_skill"]) for ag in agents]
-    ci = stats.bootstrap_ci(outcome_cells(rs))
+    if rule.get("resample") == "cases":
+        ci = stats.bootstrap_ci_cases(outcome_cells(rs), rule)
+    else:
+        ci = stats.bootstrap_ci(outcome_cells(rs), rule)
+    if rule.get("test") == "paired":
+        p, method = stats.paired_p([case_diffs(rs, ag) for ag in agents], rule), "exact paired sign-flip"
+    else:
+        p, method = stats.stratified_p(strata, rule), stats.p_method(strata)
     return {**arm, "difference": r4(statistics.mean(s["delta"]["outcome_pass_rate"] for s in per)),
-            "ci95": list(ci) if ci else None, "p": stats.stratified_p(strata)}
+            "ci95": list(ci) if ci else None, "p": p, "p_method": method}
 
 
 def cmd_aggregate(a):
     ws, manifest, mapping, cfg = load_ws(a.ws)
+    if set(manifest.get("arms", ARMS)) != set(ARMS):
+        raise SystemExit("this workspace has one arm (prepare --arms): read its prog results; it has no difference to aggregate")
+    rule = {**stats.RULE, **(cfg.get("rule") or {})}  # an eval config may pre-register rule overrides
     out = Path(a.out).resolve()
     kind = manifest.get("kind") or ("confirm" if "holdout" in manifest["sets"] else "dev")
     gaps = grade_gaps(ws, manifest, mapping, cfg)
@@ -428,12 +478,14 @@ def cmd_aggregate(a):
     reliability = {i: {"judged_runs": len(p), "agreement": stats.agreement(p), "kappa": stats.kappa(p)}
                    for i, p in sorted(pairs.items())}
     excluded = sorted(i for i, v in reliability.items()
-                      if v["agreement"] is not None and v["agreement"] < stats.RULE["agreement_min"])
+                      if v["agreement"] is not None and v["agreement"] < rule["agreement_min"])
     for r in runs:
         for row in r["rows"]:
             row["excluded"] = row["id"] in excluded
         r["pass_rate"] = kept_rate(r["rows"])
-        r["outcome_pass_rate"] = kept_rate(r["rows"], ("outcome",))
+        r["outcome_pass_rate"] = kept_rate(r["rows"], ("outcome",), rule.get("headline_check"))
+        r["judge_outcome_pass_rate"] = kept_rate(r["rows"], ("outcome",), "judge")
+        r["control_pass_rate"] = kept_rate(r["rows"], ("control",))
         r["safety_pass_rate"] = kept_rate(r["rows"], SAFETY)
         r["procedure_pass_rate"] = kept_rate(r["rows"], ("procedure",))
         r["quality_score"] = stats.rate(list(r["scores"].values()))
@@ -446,7 +498,7 @@ def cmd_aggregate(a):
         rs = [r for r in runs if r["agent"] == ag]
         planned = sum(1 for m in mapping if m["executor"] == ag)
         summ = run_summary(rs)
-        test = outcome_test(rs, [ag])
+        test = outcome_test(rs, [ag], rule)
         d = summ["delta"]
         judge_pairs = [tuple(row["votes"].values()) for r in rs for row in r["rows"] if row["votes"] and len(row["votes"]) == 2]
         by_agent[ag] = {
@@ -454,17 +506,19 @@ def cmd_aggregate(a):
             "runs": {"planned": planned, "graded": len(rs)}, "complete": len(rs) == planned,
             "run_summary": summ, "outcome": test,
             "criteria": stats.criteria({"outcome": test["difference"], "quality": d["quality_score"],
-                                        "safety": d["safety_pass_rate"]}, test["p"]),
+                                        "safety": d["safety_pass_rate"], "control": d["control_pass_rate"]},
+                                       test["p"], rule, test["without_skill"]),
             "judge_agreement": {"agreement": stats.agreement(judge_pairs), "kappa": stats.kappa(judge_pairs)},
         }
 
     by_set = {}
     for s in manifest["sets"]:
         rs = [r for r in runs if r["set"] == s]
-        test = outcome_test(rs, agents)
-        rer, status = stats.relative_error_reduction(test["with_skill"], test["without_skill"])
+        test = outcome_test(rs, agents, rule)
+        rer, status = stats.relative_error_reduction(test["with_skill"], test["without_skill"], rule)
         by_set[s] = {"evals": sorted({r["eval_name"] for r in rs}), "outcome": test,
-                     "relative_error_reduction": {"value": rer, "status": status if kind == "confirm" and s == "holdout" else None}}
+                     # A confirmation run's sets are its held-out sets, whatever they are called.
+                     "relative_error_reduction": {"value": rer, "status": status if kind == "confirm" else None}}
 
     reasons = []
     for ag, e in by_agent.items():
@@ -472,8 +526,9 @@ def cmd_aggregate(a):
             reasons.append(f"{ag}: incomplete ({e['runs']['graded']}/{e['runs']['planned']} runs)")
         elif not e["criteria"]["met"]:
             reasons.append(f"{ag}: " + "; ".join(e["criteria"]["failed"]))
-    if kind == "confirm" and by_set["holdout"]["relative_error_reduction"]["status"] != "confirmed":
-        reasons.append(f"holdout: {by_set['holdout']['relative_error_reduction']['status']}")
+    if kind == "confirm":
+        reasons += [f"{s}: {v['relative_error_reduction']['status']}" for s, v in by_set.items()
+                    if v["relative_error_reduction"]["status"] != "confirmed"]
     decision = {"publish": not reasons if kind == "confirm" else None, "reasons": reasons,
                 "note": None if kind == "confirm" else "development iteration: no publishing decision"}
 
@@ -485,10 +540,10 @@ def cmd_aggregate(a):
         "sets": manifest["sets"], "evals": sorted({r["eval_name"] for r in runs}),
         "runs_per_configuration": manifest["replicates"], "runs": {"planned": len(mapping), "graded": len(runs)},
         "run_summary": run_summary(runs),
-        "outcome": outcome_test(runs, agents),
+        "outcome": outcome_test(runs, agents, rule),
         "by_agent": by_agent, "by_set": by_set,
         "assertion_reliability": reliability, "excluded_assertions": excluded,
-        "decision": decision, "rule": stats.RULE,
+        "decision": decision, "rule": rule,
     }
     write_json(out / "benchmark.json", bench)
     (out / "summary.md").write_text(summary_md(bench))
@@ -525,7 +580,8 @@ def write_run(out, ws, r, cfg, manifest):
                               for row in r["rows"]],
         "summary": {"passed": passed, "failed": len(kept) - passed, "total": len(kept), "pass_rate": r4(r["pass_rate"])},
         "outcome_pass_rate": r4(r["outcome_pass_rate"]), "safety_pass_rate": r4(r["safety_pass_rate"]),
-        "procedure_pass_rate": r4(r["procedure_pass_rate"]),
+        "procedure_pass_rate": r4(r["procedure_pass_rate"]), "control_pass_rate": r4(r["control_pass_rate"]),
+        "judge_outcome_pass_rate": r4(r["judge_outcome_pass_rate"]),
         "quality_score": {"mean": r["quality_score"], "by_grader": r["scores"]},
         "counts": r["counts"],
         "graders": {g: cfg["executors"][g]["model"] for g in manifest["graders"][m["executor"]]}})
@@ -589,17 +645,24 @@ def criteria_cell(c):
 def summary_md(b):
     kind = {"dev": "development", "confirm": "confirmation"}[b["kind"]]
     o = b["outcome"]
+    extra = [(k, label) for k, label in (("control_pass_rate", "Control"), ("judge_outcome_pass_rate", "Judged outcome"))
+             if b["run_summary"]["without_skill"][k]["mean"] is not None or b["run_summary"]["with_skill"][k]["mean"] is not None]
+    if b["rule"].get("headline_check") != "prog":
+        extra = [e for e in extra if e[0] != "judge_outcome_pass_rate"]
+    extra_head = "".join(f"| {label} with / without " for _, label in extra)
     lines = [f"# {b['skill_name']} — {b['iteration']} ({kind})", "",
              f"{b['date_utc']} UTC · skill sha256 `{b['skill_sha256'][:12]}` · harness `{b['harness_commit']}` · "
              f"{b['runs']['graded']}/{b['runs']['planned']} runs graded · {b['runs_per_configuration']} runs per configuration"
              + (f" · {b['note']}" if b["note"] else ""), "",
              f"**Outcome pass rate**, mean over agents: with skill {pct(o['with_skill'])}, without {pct(o['without_skill'])}, "
-             f"difference **{pts(o['difference'])} points** (95% CI {ci_pts(o['ci95'])}; one-sided exact permutation test "
-             f"stratified by agent, p = {pval(o['p'])}).", "",
+             f"difference **{pts(o['difference'])} points** (95% CI {ci_pts(o['ci95'])}; one-sided {o.get('p_method') or 'exact'} permutation test "
+             f"stratified by agent, p = {pval(o['p'])})."
+             + (" The outcome pass rate counts programmatic assertions only; judged outcome assertions are a secondary "
+                "metric." if b["rule"].get("headline_check") == "prog" else ""), "",
              "| Agent | Outcome pass rate with / without | Difference, points (95% CI) | p | All assertions with / without "
-             "| Judge quality score (1–5) with / without | Safety with / without | Criteria met | Judge agreement (κ) "
-             "| Mean time with / without | Mean tokens with / without |",
-             "|---|---|---|---|---|---|---|---|---|---|---|"]
+             "| Judge quality score (1–5) with / without | Safety with / without " + extra_head + "| Criteria met "
+             "| Judge agreement (κ) | Mean time with / without | Mean tokens with / without |",
+             "|---|---|---|---|---|---|---|" + "---|" * len(extra) + "---|---|---|---|"]
     notes = []
     for ag, e in b["by_agent"].items():
         s, t, ja = e["run_summary"], e["outcome"], e["judge_agreement"]
@@ -607,6 +670,7 @@ def summary_md(b):
         lines.append(f"| {e['cli']} · {e['model']} · {e['effort']} | {pct(t['with_skill'])} / {pct(t['without_skill'])} | "
                      f"{pts(t['difference'])} ({ci_pts(t['ci95'])}) | {pval(t['p'])} | {pair(s, 'pass_rate', pct)} | "
                      f"{pair(s, 'quality_score', score)} | {pair(s, 'safety_pass_rate', pct)} | "
+                     + "".join(f"{pair(s, k, pct)} | " for k, _ in extra) +
                      f"{criteria_cell(e['criteria']) if e['complete'] else 'incomplete'} | {pct(ja['agreement'])} ({kappa}) | "
                      f"{pair(s, 'time_seconds', secs)} | {pair(s, 'tokens', ktok)} |")
         if e["criteria"]["failed"]:
@@ -644,6 +708,127 @@ def cmd_status(a):
             print(f"  {m['run_id']} {m['executor']} failed: {(r.get('error') or '')[:150]}")
 
 
+# ---------------------------------------------------------------- room
+#
+# A check of the eval itself, from the programmatic results only (no grading needed), for a workspace with one arm
+# or two: how much room each family of cases leaves (1 − the without-skill pass rate), which assertions never
+# separate the arms, and which configurations gave different results across runs. Run it on a without-skill pilot
+# before spending runs on the other arm, and on a new model before re-optimising the skill for it. Several workspaces
+# of the same config can be read together, e.g. a with-skill check beside the without-skill pilot it reuses; cases
+# with both arms then get a paired comparison.
+
+def cmd_room(a):
+    loaded = [load_ws(w) for w in a.ws]
+    configs = {m["config"] for _, m, _, _ in loaded}
+    if len(configs) > 1:
+        raise SystemExit(f"workspaces use different configs: {', '.join(sorted(configs))}")
+    shas = {m["skill_sha256"] for _, m, _, _ in loaded if "with_skill" in m.get("arms", ARMS)}
+    if len(shas) > 1:
+        raise SystemExit("with-skill runs of different SKILL.md versions cannot be read together")
+    cfg = loaded[0][3]
+    rule = {**stats.RULE, **(cfg.get("rule") or {})}
+    rows, executors = [], {}
+    for ws, manifest, mapping, _ in loaded:
+        executors.update(manifest["executors"])
+        for m in mapping:
+            prog = load_json(control(ws) / "prog" / f"{m['run_id']}.json")
+            if prog is None:
+                continue
+            ev = next(e for e in cfg["sets"][m["set"]]["evals"] if e["id"] == m["eval_id"])
+            for p in ev["parsed"]:
+                if p["check"] != "prog":
+                    continue
+                r = prog.get(p["id"]) or {}
+                rows.append({"agent": m["executor"], "family": ev.get("family") or m["eval_name"].split("-", 1)[0],
+                             "eval": m["eval_name"], "arm": m["arm"], "id": p["id"], "kind": p["kind"],
+                             "passed": bool(r.get("passed")),
+                             "evidence": scrub(str(r.get("evidence", "not measured")), ws, m["run_id"])[:160]})
+    label = " + ".join(m["label"] for _, m, _, _ in loaded)
+
+    def share(sel):
+        return (sum(r["passed"] for r in sel), len(sel)) if sel else None
+
+    def frac(x):
+        return "—" if x is None else f"{x[0]}/{x[1]}"
+
+    families, report = sorted({(r["agent"], r["family"]) for r in rows}), {"families": [], "cases": [], "flags": []}
+    for ag, fam in families:
+        sel = [r for r in rows if r["agent"] == ag and r["family"] == fam]
+        wo, w = share([r for r in sel if r["arm"] == "without_skill"]), share([r for r in sel if r["arm"] == "with_skill"])
+        control_family = all(r["kind"] == "control" for r in sel)
+        room = None if wo is None or control_family else round(1 - wo[0] / wo[1], 4)
+        status = ("control" if control_family else "—" if room is None
+                  else "saturated" if room < rule["holdout_room_min"] else "room")
+        report["families"].append({"agent": ag, "family": fam, "without": wo, "with": w, "room": room, "status": status})
+    for ag, ev in sorted({(r["agent"], r["eval"]) for r in rows}):
+        sel = [r for r in rows if r["agent"] == ag and r["eval"] == ev]
+        by_arm = {arm: share([r for r in sel if r["arm"] == arm]) for arm in ARMS}
+        report["cases"].append({"agent": ag, "eval": ev, **by_arm,
+                                "evidence": {arm: [r["evidence"] for r in sel if r["arm"] == arm] for arm in ARMS}})
+        for arm, x in by_arm.items():
+            if x and 0 < x[0] < x[1]:
+                report["flags"].append(f"{ag} {ev} {arm}: runs disagree ({frac(x)})")
+        if by_arm["with_skill"] and by_arm["without_skill"]:
+            w, wo = by_arm["with_skill"], by_arm["without_skill"]
+            if w[0] / w[1] == wo[0] / wo[1]:
+                report["flags"].append(f"{ag} {ev}: does not separate the arms (both {frac(w)})")
+    report["paired"] = []
+    for ag in sorted({r["agent"] for r in rows}):
+        both = [c for c in report["cases"] if c["agent"] == ag and c["with_skill"] and c["without_skill"]]
+        if not both:
+            continue
+        kinds = {c["eval"]: {r["kind"] for r in rows if r["agent"] == ag and r["eval"] == c["eval"]} for c in both}
+        main = [c for c in both if kinds[c["eval"]] != {"control"}]
+        ctrl = [c for c in both if kinds[c["eval"]] == {"control"}]
+
+        def arm_rate(cs, arm):
+            return round(statistics.mean(c[arm][0] / c[arm][1] for c in cs), 4) if cs else None
+        diffs = [c["with_skill"][0] / c["with_skill"][1] - c["without_skill"][0] / c["without_skill"][1] for c in main]
+        w, wo = arm_rate(main, "with_skill"), arm_rate(main, "without_skill")
+        cw, cwo = arm_rate(ctrl, "with_skill"), arm_rate(ctrl, "without_skill")
+        # The programmatic part of the criteria (outcome lift and control guard); the quality score needs grades.
+        crit = stats.criteria({"outcome": stats.diff(w, wo), "control": stats.diff(cw, cwo)},
+                              stats.paired_p([diffs], rule) if diffs else None, rule, wo)
+        report["paired"].append({"agent": ag, "cases": len(main), "with": w, "without": wo,
+                                 "p": stats.paired_p([diffs], rule) if diffs else None,
+                                 "lift_needed": stats.outcome_lift_needed(wo, rule)[1],
+                                 "programmatic_criteria_met": crit["met"], "failed": crit["failed"],
+                                 "control_cases": len(ctrl), "control_with": cw, "control_without": cwo})
+    if report["paired"]:
+        w = statistics.mean(x["with"] for x in report["paired"])
+        wo = statistics.mean(x["without"] for x in report["paired"])
+        report["pooled_relative_error_reduction"] = dict(zip(("value", "status"), stats.relative_error_reduction(w, wo, rule)))
+    print(f"{label}: programmatic results of {len({(r['agent'], r['eval'], r['arm']) for r in rows})} "
+          f"configurations; room below {rule['holdout_room_min'] * 100:.0f} points is saturated")
+    print("\n| Agent | Family | Without skill | With skill | Room | Status |\n|---|---|---|---|---|---|")
+    for f in report["families"]:
+        room = "—" if f["room"] is None else f"{f['room'] * 100:.0f} points"
+        print(f"| {f['agent']} | {f['family']} | {frac(f['without'])} | {frac(f['with'])} | {room} | {f['status']} |")
+    if report["paired"]:
+        print("\n| Agent | Cases with both arms | Pass rate with / without | Paired p (one-sided) | Control with / without "
+              "| Lift needed | Programmatic criteria met |\n|---|---|---|---|---|---|---|")
+        for x in report["paired"]:
+            met = "yes" if x["programmatic_criteria_met"] else "no: " + "; ".join(x["failed"])
+            print(f"| {x['agent']} | {x['cases']} | {pct(x['with'])} / {pct(x['without'])} | {pval(x['p'])} | "
+                  f"{pct(x['control_with'])} / {pct(x['control_without'])} ({x['control_cases']} cases) | "
+                  f"{x['lift_needed']} | {met} |")
+        rer = report["pooled_relative_error_reduction"]
+        print(f"\nPooled relative error reduction: {pct(rer['value'])} ({rer['status']}).")
+    print("\n| Agent | Case | Without skill | With skill | Evidence without | Evidence with |\n|---|---|---|---|---|---|")
+    for c in report["cases"]:
+        print(f"| {c['agent']} | {c['eval']} | {frac(c['without_skill'])} | {frac(c['with_skill'])} | "
+              f"{'; '.join(c['evidence']['without_skill'])[:90]} | {'; '.join(c['evidence']['with_skill'])[:90]} |")
+    if report["flags"]:
+        print("\n" + "\n".join(f"- {x}" for x in report["flags"]))
+    if a.out:
+        write_json(a.out, {"label": label, "workspaces": [{"label": m["label"], "date_utc": m["date_utc"],
+                                                           "arms": m.get("arms", list(ARMS)), "harness_commit": m["harness_commit"]}
+                                                          for _, m, _, _ in loaded],
+                           "skill_sha256": next(iter(shas), None),
+                           "agents": {ag: executors[ag] for ag in sorted({r["agent"] for r in rows})},
+                           "evals_sha256": loaded[0][1]["evals_sha256"], **report})
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -654,20 +839,27 @@ def main():
     p.add_argument("--executors", default="claude,codex,grok")
     p.add_argument("--replicates", type=int, default=2)
     p.add_argument("--evals", help="only these eval names, e.g. d2-apply-preapproved")
+    p.add_argument("--arms", help="only these arms, e.g. with_skill: a targeted check after a SKILL.md change, read "
+                                  "with `check`; it cannot be aggregated")
     p.add_argument("--kind", choices=("dev", "confirm"), default="dev",
                    help="confirm only for the pre-registered confirmation run; it gets a publishing decision")
     p.add_argument("--skill", help="skill folder to evaluate instead of the config's, e.g. candidates/distill")
     p.add_argument("--seed", type=int, default=20260930)
     p.add_argument("--ws")
-    for name in ("run", "check", "grade", "aggregate", "status"):
+    for name in ("run", "check", "grade", "aggregate", "status", "room"):
         q = sub.add_parser(name)
-        q.add_argument("--ws", required=True)
+        if name == "room":
+            q.add_argument("--ws", required=True, action="append", help="repeat to read several workspaces together")
+        else:
+            q.add_argument("--ws", required=True)
         if name in ("run", "grade"):
             q.add_argument("--jobs", type=int, default=3)
             q.add_argument("--claude-login", action="store_true",
                            help="use the normal Claude login instead of an isolated token (recorded as isolation: none)")
         if name == "grade":
             q.add_argument("--graders", help="only these graders, e.g. codex,grok")
+        if name == "room":
+            q.add_argument("--out", help="also write the report as JSON, e.g. <skill-workspace>/pilot-1/room.json")
         if name == "run":
             q.add_argument("--only", help="comma-separated run ids")
             q.add_argument("--executors", help="only these executors, e.g. codex,grok")
@@ -680,7 +872,7 @@ def main():
                                 "(reproduces iteration-10)")
     a = ap.parse_args()
     {"prepare": cmd_prepare, "run": cmd_run, "check": cmd_check, "grade": cmd_grade, "aggregate": cmd_aggregate,
-     "status": cmd_status}[a.cmd](a)
+     "status": cmd_status, "room": cmd_room}[a.cmd](a)
 
 
 if __name__ == "__main__":

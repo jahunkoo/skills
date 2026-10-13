@@ -1,0 +1,197 @@
+From 0287907ea010ef1e2db9c37cf48d6ee62ecf2f05 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Tue, 6 May 2025 09:00:00 +0000
+Subject: [PATCH 1/3] feat: nightly contact sync to the partner CRM
+
+---
+ jobs/nightly.js       |  7 +++++++
+ package.json          |  9 +++++++++
+ src/partner-client.js | 10 ++++++++++
+ src/sync.js           | 12 ++++++++++++
+ test/sync.test.js     | 16 ++++++++++++++++
+ 5 files changed, 54 insertions(+)
+ create mode 100644 jobs/nightly.js
+ create mode 100644 package.json
+ create mode 100644 src/partner-client.js
+ create mode 100644 src/sync.js
+ create mode 100644 test/sync.test.js
+
+diff --git a/jobs/nightly.js b/jobs/nightly.js
+new file mode 100644
+index 0000000..76ba435
+--- /dev/null
++++ b/jobs/nightly.js
+@@ -0,0 +1,7 @@
++import { syncContacts } from '../src/sync.js';
++
++// Runs at 02:00 and pushes the contacts changed since the last run, usually several thousand.
++export async function nightly(client, changedContacts) {
++  const pushed = await syncContacts(client, changedContacts);
++  console.log(`synced ${pushed} contacts`);
++}
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..3293eac
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,9 @@
++{
++  "name": "contacts-sync",
++  "version": "1.0.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "test": "node --test"
++  }
++}
+diff --git a/src/partner-client.js b/src/partner-client.js
+new file mode 100644
+index 0000000..de3808a
+--- /dev/null
++++ b/src/partner-client.js
+@@ -0,0 +1,10 @@
++// Thin client for the partner CRM API. `send` performs the HTTP call; tests pass a fake.
++export function createClient(send) {
++  return {
++    async pushContact(contact) {
++      const res = await send({ method: 'PUT', path: `/contacts/${contact.id}`, body: contact });
++      if (res.status === 429) throw new Error('partner rate limit hit');
++      return res;
++    },
++  };
++}
+diff --git a/src/sync.js b/src/sync.js
+new file mode 100644
+index 0000000..b89bac7
+--- /dev/null
++++ b/src/sync.js
+@@ -0,0 +1,12 @@
++const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
++
++// Pushes each changed contact to the partner CRM, one request at a time.
++export async function syncContacts(client, contacts, { pauseMs = 250 } = {}) {
++  let pushed = 0;
++  for (const contact of contacts) {
++    await client.pushContact(contact);
++    pushed += 1;
++    if (pauseMs) await sleep(pauseMs);
++  }
++  return pushed;
++}
+diff --git a/test/sync.test.js b/test/sync.test.js
+new file mode 100644
+index 0000000..122d79b
+--- /dev/null
++++ b/test/sync.test.js
+@@ -0,0 +1,16 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { createClient } from '../src/partner-client.js';
++import { syncContacts } from '../src/sync.js';
++
++test('pushes every contact once', async () => {
++  const paths = [];
++  const client = createClient(async (req) => { paths.push(req.path); return { status: 200 }; });
++  assert.equal(await syncContacts(client, [{ id: 'c1' }, { id: 'c2' }], { pauseMs: 0 }), 2);
++  assert.deepEqual(paths, ['/contacts/c1', '/contacts/c2']);
++});
++
++test('a 429 stops the sync', async () => {
++  const client = createClient(async () => ({ status: 429 }));
++  await assert.rejects(syncContacts(client, [{ id: 'c1' }], { pauseMs: 0 }), /rate limit/);
++});
+
+From f803b1d657ca48bcb719a8d5410bb7411ecd946e Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Tue, 20 May 2025 09:00:00 +0000
+Subject: [PATCH 2/3] docs: partner API limits and endpoints
+
+---
+ docs/partner-api.md | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+ create mode 100644 docs/partner-api.md
+
+diff --git a/docs/partner-api.md b/docs/partner-api.md
+new file mode 100644
+index 0000000..91af95a
+--- /dev/null
++++ b/docs/partner-api.md
+@@ -0,0 +1,8 @@
++# Partner CRM API
++
++- Rate limit: 5 requests per second per account, counted across everything we run against it
++  (nightly sync, imports, webhooks).
++- Over the limit the API answers 429 and suspends the account for 24 hours. While suspended every
++  call fails, webhooks included.
++- `PUT /contacts/:id` updates one contact.
++- `POST /contacts/batch` updates up to 25 contacts and counts as one request.
+
+From 01ef56385338d80e355b75b814d71e57068c9a7b Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Tue, 10 Jun 2025 09:00:00 +0000
+Subject: [PATCH 3/3] feat(client): pushContacts for the batch endpoint
+
+Used by the one-off import job for now.
+---
+ jobs/import.js        | 6 ++++++
+ src/chunk.js          | 5 +++++
+ src/partner-client.js | 7 +++++++
+ test/chunk.test.js    | 7 +++++++
+ 4 files changed, 25 insertions(+)
+ create mode 100644 jobs/import.js
+ create mode 100644 src/chunk.js
+ create mode 100644 test/chunk.test.js
+
+diff --git a/jobs/import.js b/jobs/import.js
+new file mode 100644
+index 0000000..eba1155
+--- /dev/null
++++ b/jobs/import.js
+@@ -0,0 +1,6 @@
++import { chunk } from '../src/chunk.js';
++
++// One-off import of a new customer's contacts through the batch endpoint.
++export async function importContacts(client, contacts) {
++  for (const batch of chunk(contacts, 25)) await client.pushContacts(batch);
++}
+diff --git a/src/chunk.js b/src/chunk.js
+new file mode 100644
+index 0000000..721a75c
+--- /dev/null
++++ b/src/chunk.js
+@@ -0,0 +1,5 @@
++export function chunk(list, size) {
++  const out = [];
++  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
++  return out;
++}
+diff --git a/src/partner-client.js b/src/partner-client.js
+index de3808a..45d0010 100644
+--- a/src/partner-client.js
++++ b/src/partner-client.js
+@@ -6,5 +6,12 @@ export function createClient(send) {
+       if (res.status === 429) throw new Error('partner rate limit hit');
+       return res;
+     },
++    // Batch endpoint: up to 25 contacts in one request.
++    async pushContacts(contacts) {
++      if (contacts.length > 25) throw new Error('at most 25 contacts per batch');
++      const res = await send({ method: 'POST', path: '/contacts/batch', body: { contacts } });
++      if (res.status === 429) throw new Error('partner rate limit hit');
++      return res;
++    },
+   };
+ }
+diff --git a/test/chunk.test.js b/test/chunk.test.js
+new file mode 100644
+index 0000000..5832cb7
+--- /dev/null
++++ b/test/chunk.test.js
+@@ -0,0 +1,7 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { chunk } from '../src/chunk.js';
++
++test('splits into batches of the given size', () => {
++  assert.deepEqual(chunk([1, 2, 3, 4, 5], 2), [[1, 2], [3, 4], [5]]);
++});

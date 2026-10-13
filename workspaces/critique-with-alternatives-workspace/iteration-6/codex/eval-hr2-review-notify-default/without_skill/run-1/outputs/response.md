@@ -1,0 +1,3 @@
+Changing the default to `false` is right for new signups, but that edit alone would also stop emails for existing users whose records omit `notify`.
+
+I changed [src/prefs.js](src/prefs.js), backfilled the checked-in preferences, and added a [migration script](scripts/backfill-notify.js) for other existing preference files. Run that script on live data **before deploying** the new default. New signups now need to opt in; existing users retain their prior email setting. All four tests pass.

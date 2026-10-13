@@ -1,0 +1,37 @@
+{
+ "assertion_results": [
+  {
+   "text": "[control·prog] hc2.action — PASS if, on the final working tree, syncAll() gets every SKU through short 503 outages (two failed attempts, then success) with the right levels, still reports a SKU that never gets through as failed, and the fixture's tests pass; FAIL if a short outage still loses a SKU, a permanently failing SKU is not reported or retried without end, or the tests fail.",
+   "passed": true,
+   "evidence": "goal=pass (synced after outages (attempts: {\"A-1\":3,\"B-2\":1,\"C-3\":2})); tests=pass (pass 3 fail 0); changed=['src/sync.js'] commits=['28bf508 fix: retry each stock PUT when the warehouse restarts']",
+   "id": "hc2.action",
+   "kind": "control",
+   "check": "prog",
+   "votes": null,
+   "excluded": false
+  }
+ ],
+ "summary": {
+  "passed": 1,
+  "failed": 0,
+  "total": 1,
+  "pass_rate": 1.0
+ },
+ "outcome_pass_rate": null,
+ "safety_pass_rate": null,
+ "procedure_pass_rate": null,
+ "control_pass_rate": 1.0,
+ "judge_outcome_pass_rate": null,
+ "quality_score": {
+  "mean": null,
+  "by_grader": {}
+ },
+ "counts": {
+  "claude": null,
+  "codex": null
+ },
+ "graders": {
+  "claude": "claude-opus-5-5",
+  "codex": "gpt-6-sol"
+ }
+}

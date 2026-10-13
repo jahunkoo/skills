@@ -1,0 +1,198 @@
+From a3b9be1d82d9da837a788990e0ee6a3dc5f1e26e Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Wed, 8 Jan 2025 06:00:00 +0000
+Subject: [PATCH 1/3] feat: daily sales report per shop
+
+---
+ data/shops.json     | 12 ++++++++++++
+ package.json        |  9 +++++++++
+ src/report.js       | 16 ++++++++++++++++
+ src/shops.js        |  9 +++++++++
+ test/report.test.js | 15 +++++++++++++++
+ 5 files changed, 61 insertions(+)
+ create mode 100644 data/shops.json
+ create mode 100644 package.json
+ create mode 100644 src/report.js
+ create mode 100644 src/shops.js
+ create mode 100644 test/report.test.js
+
+diff --git a/data/shops.json b/data/shops.json
+new file mode 100644
+index 0000000..493b62d
+--- /dev/null
++++ b/data/shops.json
+@@ -0,0 +1,12 @@
++[
++  {
++    "id": "lis",
++    "name": "Old Town",
++    "timeZone": "Europe/Lisbon"
++  },
++  {
++    "id": "nyc",
++    "name": "Main Street",
++    "timeZone": "America/New_York"
++  }
++]
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..747e2b9
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,9 @@
++{
++  "name": "sales-report",
++  "version": "1.0.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "test": "node --test"
++  }
++}
+diff --git a/src/report.js b/src/report.js
+new file mode 100644
+index 0000000..82f6b83
+--- /dev/null
++++ b/src/report.js
+@@ -0,0 +1,16 @@
++// Daily sales per shop for the morning report. Order times are UTC ISO strings.
++export function dayOf(order) {
++  return order.at.slice(0, 10);
++}
++
++export function dailyTotals(orders) {
++  const totals = new Map();
++  for (const order of orders) {
++    const key = `${order.shop}|${dayOf(order)}`;
++    totals.set(key, (totals.get(key) ?? 0) + order.amount);
++  }
++  return [...totals].map(([key, total]) => {
++    const [shop, day] = key.split('|');
++    return { shop, day, total };
++  });
++}
+diff --git a/src/shops.js b/src/shops.js
+new file mode 100644
+index 0000000..96b32fe
+--- /dev/null
++++ b/src/shops.js
+@@ -0,0 +1,9 @@
++import { readFileSync } from 'node:fs';
++
++const shops = JSON.parse(readFileSync(new URL('../data/shops.json', import.meta.url), 'utf8'));
++
++export function getShop(id) {
++  const shop = shops.find((s) => s.id === id);
++  if (!shop) throw new Error(`unknown shop ${id}`);
++  return shop;
++}
+diff --git a/test/report.test.js b/test/report.test.js
+new file mode 100644
+index 0000000..04d6b51
+--- /dev/null
++++ b/test/report.test.js
+@@ -0,0 +1,15 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { dailyTotals } from '../src/report.js';
++
++test('totals per shop and day', () => {
++  const rows = dailyTotals([
++    { id: 'o1', shop: 'lis', at: '2025-01-15T09:00:00Z', amount: 20 },
++    { id: 'o2', shop: 'lis', at: '2025-01-15T10:30:00Z', amount: 5 },
++    { id: 'o3', shop: 'lis', at: '2025-01-16T09:00:00Z', amount: 7 },
++  ]);
++  assert.deepEqual(rows, [
++    { shop: 'lis', day: '2025-01-15', total: 25 },
++    { shop: 'lis', day: '2025-01-16', total: 7 },
++  ]);
++});
+
+From 2a6d5f504f7b1788ac9d3c29c993a9637d0bb5aa Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Wed, 15 Jan 2025 06:00:00 +0000
+Subject: [PATCH 2/3] feat: receipts show the shop's local date
+
+---
+ src/receipts.js       | 7 +++++++
+ src/time.js           | 5 +++++
+ test/receipts.test.js | 7 +++++++
+ 3 files changed, 19 insertions(+)
+ create mode 100644 src/receipts.js
+ create mode 100644 src/time.js
+ create mode 100644 test/receipts.test.js
+
+diff --git a/src/receipts.js b/src/receipts.js
+new file mode 100644
+index 0000000..bff2cff
+--- /dev/null
++++ b/src/receipts.js
+@@ -0,0 +1,7 @@
++import { getShop } from './shops.js';
++import { localDate } from './time.js';
++
++export function receiptHeader(order) {
++  const shop = getShop(order.shop);
++  return `${shop.name} | ${localDate(order.at, shop.timeZone)} | order ${order.id}`;
++}
+diff --git a/src/time.js b/src/time.js
+new file mode 100644
+index 0000000..f336ab3
+--- /dev/null
++++ b/src/time.js
+@@ -0,0 +1,5 @@
++// Calendar date (YYYY-MM-DD) of an instant in an IANA time zone. Intl handles daylight saving.
++export function localDate(iso, timeZone) {
++  return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' })
++    .format(new Date(iso));
++}
+diff --git a/test/receipts.test.js b/test/receipts.test.js
+new file mode 100644
+index 0000000..5628469
+--- /dev/null
++++ b/test/receipts.test.js
+@@ -0,0 +1,7 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { receiptHeader } from '../src/receipts.js';
++
++test("the receipt shows the shop's local date", () => {
++  assert.equal(receiptHeader({ id: 'n1', shop: 'nyc', at: '2025-01-10T03:00:00Z' }), 'Main Street | 2025-01-09 | order n1');
++});
+
+From 22cb61f89ea1904a698c597cc9da84e79a75badd Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Mon, 27 Jan 2025 06:00:00 +0000
+Subject: [PATCH 3/3] shops: add the Auckland shop
+
+---
+ data/shops.json       | 5 +++++
+ test/receipts.test.js | 3 +++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/data/shops.json b/data/shops.json
+index 493b62d..5727b8a 100644
+--- a/data/shops.json
++++ b/data/shops.json
+@@ -8,5 +8,10 @@
+     "id": "nyc",
+     "name": "Main Street",
+     "timeZone": "America/New_York"
++  },
++  {
++    "id": "akl",
++    "name": "Harbour Street",
++    "timeZone": "Pacific/Auckland"
+   }
+ ]
+diff --git a/test/receipts.test.js b/test/receipts.test.js
+index 5628469..ca50d05 100644
+--- a/test/receipts.test.js
++++ b/test/receipts.test.js
+@@ -5,3 +5,6 @@ import { receiptHeader } from '../src/receipts.js';
+ test("the receipt shows the shop's local date", () => {
+   assert.equal(receiptHeader({ id: 'n1', shop: 'nyc', at: '2025-01-10T03:00:00Z' }), 'Main Street | 2025-01-09 | order n1');
+ });
++test('Auckland receipts carry the Auckland date', () => {
++  assert.equal(receiptHeader({ id: 'a1', shop: 'akl', at: '2025-01-26T21:00:00Z' }), 'Harbour Street | 2025-01-27 | order a1');
++});

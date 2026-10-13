@@ -1,0 +1,3 @@
+I added the receipt log as the first line of `handleWebhook`, with `redact()` applied to the headers and body. Logging them verbatim would expose partners’ static bearer tokens in a log service accessible to support and contractors. The new test confirms that useful event details remain visible while known credential fields are masked; all 5 tests pass.
+
+One limitation: `redact()` masks known secret field names, so sensitive values under other names could still appear in the payload log.

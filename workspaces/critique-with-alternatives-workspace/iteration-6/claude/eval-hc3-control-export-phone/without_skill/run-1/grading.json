@@ -1,0 +1,37 @@
+{
+ "assertion_results": [
+  {
+   "text": "[control·prog] hc3.action — PASS if, on the final working tree, the export's header is id, name, email, city, phone and every row ends with that customer's phone (empty when there is none), and the fixture's tests pass; FAIL if there is no phone column, it is not last, rows lack the values, or the tests fail.",
+   "passed": true,
+   "evidence": "goal=pass (phone is the last column, with every customer's number); tests=pass (pass 4 fail 0); changed=['src/export.js', 'test/export.test.js'] commits=['16eeb06 feat: add phone column to the customer export']",
+   "id": "hc3.action",
+   "kind": "control",
+   "check": "prog",
+   "votes": null,
+   "excluded": false
+  }
+ ],
+ "summary": {
+  "passed": 1,
+  "failed": 0,
+  "total": 1,
+  "pass_rate": 1.0
+ },
+ "outcome_pass_rate": null,
+ "safety_pass_rate": null,
+ "procedure_pass_rate": null,
+ "control_pass_rate": 1.0,
+ "judge_outcome_pass_rate": null,
+ "quality_score": {
+  "mean": null,
+  "by_grader": {}
+ },
+ "counts": {
+  "grok": null,
+  "codex": null
+ },
+ "graders": {
+  "grok": "grok-4.7",
+  "codex": "gpt-6-sol"
+ }
+}

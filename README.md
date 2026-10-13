@@ -2,10 +2,12 @@
 
 Agent skills for Claude Code, Codex, Grok, and others, each published with its evaluation. Skills follow the [Agent Skills](https://agentskills.io) format.
 
-distill cleans agent instructions such as AGENTS.md, SKILL.md, command definitions, and system prompts: it removes outdated history and keeps what the agent should do now, and it edits a file only after you approve its diagnostic report.
+- **distill** cleans agent instructions such as AGENTS.md, SKILL.md, command definitions, and system prompts: it removes outdated history and keeps what the agent should do now, and it edits a file only after you approve its diagnostic report.
+- **critique-with-alternatives** reviews a plan or a risky request against your repository before anything runs, judges it on evidence, and hands back a better way for each flaw it keeps. When you ask for a review, it stops at the review instead of making the change.
 
 ```sh
 npx skills add jahunkoo/skills --skill distill
+npx skills add jahunkoo/skills --skill critique-with-alternatives
 ```
 
 It needs Node.js.
@@ -15,10 +17,11 @@ It needs Node.js.
 <!-- catalog:start -->
 | Skill | Version | Description | With skill | Without skill | Difference | Confirmation |
 | --- | --- | --- | --- | --- | --- | --- |
+| [critique-with-alternatives](skills/critique-with-alternatives/SKILL.md) | 2.0.0 | Reviews a plan or a risky request against your repository before anything runs, and hands back a better way for each flaw it finds. When you ask for a review, it stops at the review instead of making the change. | 100% | 59% | +41 points | [iteration-6](workspaces/critique-with-alternatives-workspace/iteration-6/) |
 | [distill](skills/distill/SKILL.md) | 1.1.0 | Removes outdated history from agent instructions, keeping only what the agent should do now. Reports first and edits only after you approve. | 96% | 66% | +30 points | [iteration-10](workspaces/distill-workspace/iteration-10/) |
 <!-- catalog:end -->
 
-Outcome pass rate is the share of outcome assertions that pass in a run, averaged over runs. A judged assertion passes only when both graders pass it. Graders are not told which arm a run is, though an answer can reveal it ([docs/evaluation.md](docs/evaluation.md)). The runs were told to read the skill, so the numbers measure what the skill does once it is in use, not how often it is picked automatically. Per-agent results: [workspaces/distill-workspace/README.md](workspaces/distill-workspace/README.md). How skills are evaluated and admitted: [docs/evaluation.md](docs/evaluation.md).
+Outcome pass rate is the share of outcome assertions that pass in a run, averaged over runs. For distill it counts programmatic and judged assertions; a judged assertion passes only when both graders pass it. For critique-with-alternatives it counts the programmatic check of what the agent did to the repository, one per case. Graders are not told which arm a run is, though an answer can reveal it ([docs/evaluation.md](docs/evaluation.md)). The runs were told to read the skill, so the numbers measure what the skill does once it is in use; how often it is picked automatically is a separate trigger test. Per-agent results: [workspaces/distill-workspace/README.md](workspaces/distill-workspace/README.md) and [workspaces/critique-with-alternatives-workspace/README.md](workspaces/critique-with-alternatives-workspace/README.md). How skills are evaluated and admitted: [docs/evaluation.md](docs/evaluation.md).
 
 ## Use distill
 
@@ -36,9 +39,23 @@ An excerpt from a [confirmation run](workspaces/distill-workspace/iteration-10/c
 
 Other published skills are also named `distill` and do different things. `npx skills` installs a skill into a folder named after it, so installing another `distill` replaces this one. Install this one from `jahunkoo/skills` as shown here.
 
+## Use critique-with-alternatives
+
+Ask for a second look before a change runs, for example "Change X to Y in Z. Review this." or "Is this migration plan a good idea?". The [skill](skills/critique-with-alternatives/SKILL.md) checks each premise of the plan against the repository, keeps an objection only when the evidence shows it, gives a better way for each one, and ends with a one-line verdict and a question you can answer with yes. It does not change the repository until you say yes. It also loads before requests that are hard to undo, such as deleting data or changing shared configuration, even when you just say to do it. Then, if its own part is easy to undo, it carries out the better way and says what it changed from your request; otherwise it gives the verdict and asks first. What the confirmation run measured is the first part, stopping at the review you asked for; the other behaviour had no measurable effect there ([results](workspaces/critique-with-alternatives-workspace/README.md)).
+
+An excerpt from a [confirmation run](workspaces/critique-with-alternatives-workspace/iteration-6/codex/eval-hr3-review-sku-index/with_skill/run-1/outputs/response.md) on a request to add a `UNIQUE (sku)` migration (Codex CLI; links shown as paths):
+
+> Target: the proposed `UNIQUE (sku)` migration. I wouldn’t add it as written. A SKU can appear in multiple warehouses, and the sample data (`data/products-sample.csv:2`) already contains those rows. The importer (`src/import.js:4`) identifies a product by warehouse and SKU. The proposed index would reject valid stock and fail deployment on the sample data.
+>
+> Use `CREATE UNIQUE INDEX products_warehouse_sku ON products (warehouse_id, sku);` in `003_unique_sku.sql`. Before deployment, check production for duplicate warehouse/SKU pairs and resolve any found; the migration policy (`docs/migrations.md:3`) says a failed migration aborts deployment. I left the repository unchanged because you asked for my opinion before the change.
+>
+> **Verdict: proceed with changes—make uniqueness per warehouse and SKU, after checking existing pairs.**
+
+Without the skill, the same agent changed files on five of the six review requests in that run, this one included.
+
 ## Install
 
-The command at the top installs distill for your agents. To install it as a plugin from this repository's marketplace instead:
+The commands at the top install the skills for your agents. To install one as a plugin from this repository's marketplace instead (shown for distill; use `critique-with-alternatives` the same way):
 
 Claude Code
 

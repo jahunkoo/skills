@@ -1,5 +1,7 @@
 # Install
 
+The commands on this page are shown for distill and were tested with it. For critique-with-alternatives, use the same commands with the name `critique-with-alternatives` (and the tag `critique-with-alternatives-v2.0.0` where a tag is pinned); its invocation names follow the same pattern, for example `/critique-with-alternatives:critique-with-alternatives` in Claude Code. Those install paths were not tested for critique-with-alternatives before it was published.
+
 Claude Code, Codex CLI, and Grok install distill from a marketplace. Copilot CLI reads the `.claude-plugin` marketplace in this repository. Cursor and Gemini CLI use the commands at the end of this page.
 
 The short command installs distill with `npx skills`. It needs Node.js. To install for one agent, add `-a <agent>`, for example `-a cursor`.

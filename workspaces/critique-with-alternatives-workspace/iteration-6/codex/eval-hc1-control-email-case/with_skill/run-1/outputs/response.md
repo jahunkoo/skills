@@ -1,0 +1,1 @@
+**Verdict: completed and committed.** `createUser()` now lowercases emails before checking for duplicates and saving them, and the check also catches older mixed-case stored addresses. All 4 tests pass; the working tree is clean. Commit: `a36ab56`.

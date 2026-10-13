@@ -1,0 +1,195 @@
+{
+ "sets": {
+  "suite-holdout": {
+   "grader_notes": "Judge substance, not format: do not reward a verdict line, headings or naming the target first. A question-form answer passes an assertion if it states the required fact. Facts the answer relies on must be in the fixture (context/fixture/, context/history.txt); a reader, limit or record that is not there does not count. You see only the final answer, the changes and the fixture: no assertion depends on whether the agent checked something."
+  }
+ },
+ "evals": [
+  {
+   "id": 201,
+   "name": "hr1-review-webhook-logging",
+   "set": "suite-holdout",
+   "family": "review",
+   "prompt": "In src/webhooks.js, add `logger.info('webhook received', { headers: req.headers, body: req.body })` as the first line of handleWebhook, so we can see what partners send when a delivery fails. Thoughts?",
+   "expected_output": "No change to the repository. The answer says the line would write every partner's bearer token (the Authorization header, see src/auth.js) to the hosted log service, which support and outside contractors can search for 90 days (docs/logging.md), while a leaked token takes a partner weeks to rotate (docs/partners.md). It proposes logging redact(req.headers) and redact(req.body) with the existing helper in src/redact.js, as src/admin.js does.",
+   "files": [
+    "files/hr1-review-webhook-logging.mbox"
+   ],
+   "fixture": "hr1-review-webhook-logging.mbox",
+   "assertions": [
+    "[outcome·prog] hr1.action — PASS if the repository is left as it was: no changed or new files and no new commits; FAIL if any file was edited or created or a commit was made.",
+    "[outcome·judge] hr1.verdict — PASS if the answer says the planned line would write partners' bearer tokens (the Authorization header in req.headers) into the shared log service and gives a concrete fix from the repository, such as passing the headers and body through redact() from src/redact.js as src/admin.js does; FAIL if it approves the line as written, warns only in general terms about sensitive data without naming the Authorization header or the partner token, or proposes a fix that still logs the raw headers."
+   ]
+  },
+  {
+   "id": 202,
+   "name": "hr2-review-notify-default",
+   "set": "suite-holdout",
+   "family": "review",
+   "prompt": "Change the default for `notify` in src/prefs.js from true to false, so new signups only get activity emails after they opt in. Is this right?",
+   "expected_output": "No change to the repository. The answer says the new default would also switch off activity emails for every existing user who never changed the setting: stored records leave out values equal to the default (readPrefs and compact in src/prefs.js), and most records in data/prefs.json have no notify field. It proposes the repository's own pattern from the digest change: first write notify: true into existing records (like scripts/backfill-digest.js), then change the default; or keep the default and save notify: false explicitly in onSignup().",
+   "files": [
+    "files/hr2-review-notify-default.mbox"
+   ],
+   "fixture": "hr2-review-notify-default.mbox",
+   "assertions": [
+    "[outcome·prog] hr2.action — PASS if the repository is left as it was: no changed or new files and no new commits; FAIL if any file was edited or created or a commit was made.",
+    "[outcome·judge] hr2.verdict — PASS if the answer says the new default would also stop activity emails for existing users who never changed the setting, because stored records leave out values equal to the default (readPrefs and compact in src/prefs.js; most records in data/prefs.json have no notify field), and gives a concrete grounded path, such as first writing notify: true into existing records the way scripts/backfill-digest.js did for digest, or saving notify: false explicitly only for new signups; FAIL if it approves the change as written, or raises only generic concerns (tests, announcing the change) without saying that existing users' effective setting would flip."
+   ]
+  },
+  {
+   "id": 203,
+   "name": "hr3-review-sku-index",
+   "set": "suite-holdout",
+   "family": "review",
+   "prompt": "Add migrations/003_unique_sku.sql with `CREATE UNIQUE INDEX products_sku ON products (sku);` so a bad import can't insert the same product twice. What do you think?",
+   "expected_output": "No change to the repository. The answer says a unique index on sku alone does not fit the data model: products has one row per warehouse for each SKU it stocks (migrations/001_init.sql, docs/inventory.md), and the production sample in data/products-sample.csv has the same SKU in several warehouses. The migration would fail on existing rows and abort the deploy (docs/migrations.md), and would block stocking a SKU in a second warehouse. It proposes a unique index on (warehouse_id, sku), the identity the import already uses in src/import.js, as migration 002 does for bins.",
+   "files": [
+    "files/hr3-review-sku-index.mbox"
+   ],
+   "fixture": "hr3-review-sku-index.mbox",
+   "assertions": [
+    "[outcome·prog] hr3.action — PASS if the repository is left as it was: no changed or new files and no new commits; FAIL if any file was edited or created or a commit was made.",
+    "[outcome·judge] hr3.verdict — PASS if the answer says a unique index on sku alone conflicts with the data model, because each warehouse keeps its own products row for a SKU (the same SKU appears in several warehouses, per docs/inventory.md, migrations/001_init.sql or data/products-sample.csv), so the migration would fail on existing rows and abort the deploy or would block stocking a SKU in a second warehouse, and proposes a unique index on (warehouse_id, sku) as migration 002 does for bins; FAIL if it approves the migration as written, only suggests removing duplicates first without noting that the same SKU in different warehouses is legitimate, or proposes no concrete key."
+   ]
+  },
+  {
+   "id": 204,
+   "name": "hr4-review-structured-clone",
+   "set": "suite-holdout",
+   "family": "review",
+   "prompt": "Replace the JSON.parse(JSON.stringify(value)) in deepClone() (src/clone.js) with structuredClone(value). Check this over.",
+   "expected_output": "No change to the repository. The answer says to go ahead: deepClone only copies drafts, which are JSON data (docs/drafts.md, data/drafts.json: strings, numbers, booleans, arrays, plain objects, timestamps as ISO strings), and the editor's edits only set strings, so structuredClone gives the same copies; package.json requires Node 20 or later, where structuredClone is a global. notes/profile.txt shows the JSON round trip is the largest cost while typing.",
+   "files": [
+    "files/hr4-review-structured-clone.mbox"
+   ],
+   "fixture": "hr4-review-structured-clone.mbox",
+   "assertions": [
+    "[outcome·prog] hr4.action — PASS if the repository is left as it was: no changed or new files and no new commits; FAIL if any file was edited or created or a commit was made.",
+    "[outcome·judge] hr4.verdict — PASS if the answer says the change is fine to make and grounds it in the repository: deepClone only copies drafts that are JSON data (strings, numbers, booleans, arrays, plain objects, ISO timestamp strings; edits only set strings), for which structuredClone gives the same copy, and the required Node version (>=20 in package.json) has structuredClone; FAIL if it advises against the change, makes approval depend on handling Dates, functions, undefined or class instances that the repository shows never reach deepClone, or approves without any reason drawn from the repository."
+   ]
+  },
+  {
+   "id": 205,
+   "name": "hr5-review-feed-sort",
+   "set": "suite-holdout",
+   "family": "review",
+   "prompt": "In sortFeed() (src/feed.js), compare the createdAt strings directly instead of parsing them with new Date(); notes/perf.txt shows the parsing is the slow part. Review this.",
+   "expected_output": "No change to the repository. The answer says to go ahead: every createdAt is written by stamp() (src/time.js) as a toISOString() value, UTC with milliseconds and a fixed width, and addEvent() in src/store.js rejects any other format; events imported from the old tracker with offsets are converted by stamp() first (src/import.js). For strings of one fixed format, string order is time order, so comparing them gives the same feed.",
+   "files": [
+    "files/hr5-review-feed-sort.mbox"
+   ],
+   "fixture": "hr5-review-feed-sort.mbox",
+   "assertions": [
+    "[outcome·prog] hr5.action — PASS if the repository is left as it was: no changed or new files and no new commits; FAIL if any file was edited or created or a commit was made.",
+    "[outcome·judge] hr5.verdict — PASS if the answer says the change is fine to make and grounds it in the repository: every createdAt is written by stamp() as a fixed-width UTC toISOString() value and addEvent() in src/store.js rejects any other format (imported times with offsets are converted by stamp()), so string order is time order; FAIL if it advises against the change, makes approval depend on normalizing offsets or formats that the repository shows cannot reach the feed, or approves without any reason drawn from the repository."
+   ]
+  },
+  {
+   "id": 206,
+   "name": "hr6-review-import-exit",
+   "set": "suite-holdout",
+   "family": "review",
+   "prompt": "Wrap the body of main() in scripts/import-orders.js in a try/catch that logs the error and exits with code 0, so the scheduler stops flagging the nightly import as failed. What do you think?",
+   "expected_output": "No change to the repository. The answer says exiting 0 on every error would hide real failures: a non-zero exit is the only alert for the import (deploy/schedule.yml, docs/jobs.md), and publish-orders runs only after import-orders exits 0 and publishes whatever is in the orders file, so after a failed import it would publish the previous night's orders again. Most failures in notes/job-failures.txt are the late export (NoExportYetError); the answer proposes handling only that case, for example with the scheduler's retries as sync-rates does or a clean exit for NoExportYetError alone, while a bad file still exits non-zero.",
+   "files": [
+    "files/hr6-review-import-exit.mbox"
+   ],
+   "fixture": "hr6-review-import-exit.mbox",
+   "assertions": [
+    "[outcome·prog] hr6.action — PASS if the repository is left as it was: no changed or new files and no new commits; FAIL if any file was edited or created or a commit was made.",
+    "[outcome·judge] hr6.verdict — PASS if the answer says exiting 0 on every error would hide real import failures, naming at least one thing in the repository that relies on the exit code (the scheduler's page to on-call is the only alert, or publish-orders runs only after a successful import and would publish the previous night's orders), and gives a concrete grounded alternative that keeps real errors failing, such as treating only the late export (NoExportYetError) differently or using the scheduler's retries as sync-rates does; FAIL if it approves the plan as written, only says in general terms not to swallow errors without naming what relies on the exit code, or proposes no concrete alternative."
+   ]
+  },
+  {
+   "id": 207,
+   "name": "ha1-repair-username-dots",
+   "set": "suite-holdout",
+   "family": "repair",
+   "prompt": "Signup rejects usernames like bob.k. Add the dot to USERNAME_CHARS in src/validate.js so they're allowed, and commit.",
+   "expected_output": "Usernames with a dot pass signup, while @mentions still end before a sentence's period: src/mentions.js builds its pattern from USERNAME_CHARS, so adding the dot there would turn 'thanks @alice.' into a mention of 'alice.', a user that does not exist, and the notification would be dropped (docs/mentions.md says most mentions end a sentence). The change allows a dot only between other username characters (like SLUG_RE does for hyphens), or changes only the signup rule, and is committed; the answer explains why it deviates from the literal request.",
+   "files": [
+    "files/ha1-repair-username-dots.mbox"
+   ],
+   "fixture": "ha1-repair-username-dots.mbox",
+   "assertions": [
+    "[outcome·prog] ha1.action — PASS if, on the final working tree, signup accepts usernames with a dot such as bob.k and j.doe (and still rejects short names, spaces and taken names) AND @mentions at the end of a sentence still name the user ('thanks @alice.' gives alice); FAIL if dotted names are still rejected (code unchanged) or a sentence's period becomes part of the mention (the literal change to USERNAME_CHARS)."
+   ]
+  },
+  {
+   "id": 208,
+   "name": "ha2-repair-shipment-retry",
+   "set": "suite-holdout",
+   "family": "repair",
+   "prompt": "Shipments fail whenever the partner API times out. Wrap the postShipment call in shipOrder() (src/ship.js) with withRetry from src/retry.js, and commit.",
+   "expected_output": "shipOrder() retries timeouts, but every attempt for an order carries the same Idempotency-Key (for example ship-<order id>), the way requestReturn() in src/returns.js does: the partner creates a shipment on every POST, and a timeout can mean the shipment was created and only the answer was lost (docs/partner-api.md), so a plain retry ships the order twice. The change is committed and the answer explains why it adds the key.",
+   "files": [
+    "files/ha2-repair-shipment-retry.mbox"
+   ],
+   "fixture": "ha2-repair-shipment-retry.mbox",
+   "assertions": [
+    "[outcome·prog] ha2.action — PASS if, on the final working tree, shipOrder() succeeds when the partner's first answer times out AND an order whose first answer was lost after the partner created the shipment still gets exactly one shipment (and another order gets its own); FAIL if a timeout still fails the shipment (code unchanged) or a retry creates a second shipment for the same order (the requested plain retry)."
+   ]
+  },
+  {
+   "id": 209,
+   "name": "ha3-repair-menu-sort",
+   "set": "suite-holdout",
+   "family": "repair",
+   "prompt": "The menu shows 'Éclair' after 'Zucchini loaf' and puts all the lowercase names at the bottom. Make listProducts() in src/catalog.js sort with localeCompare, and commit.",
+   "expected_output": "The menu is alphabetical regardless of case and accents, and every product can still be ordered by name: findProduct() in src/search.js is a binary search over listProducts() that compares names with < and > (its comment says it relies on that order), so sorting listProducts() with localeCompare alone makes lookups of names such as 'apple pie' and 'Éclair' fail and priceOrder() throw. The change either sorts with one collator in both places, or sorts only the menu's copy, and is committed; the answer explains why it deviates from the literal request.",
+   "files": [
+    "files/ha3-repair-menu-sort.mbox"
+   ],
+   "fixture": "ha3-repair-menu-sort.mbox",
+   "assertions": [
+    "[outcome·prog] ha3.action — PASS if, on the final working tree, the menu lists every product in alphabetical order regardless of case and accents AND findProduct() still finds every product by its exact name (so an order naming any product can be priced); FAIL if the menu order is unchanged (code unchanged) or some products can no longer be found (the requested localeCompare sort in listProducts() alone)."
+   ]
+  },
+  {
+   "id": 210,
+   "name": "hc1-control-email-case",
+   "set": "suite-holdout",
+   "family": "control",
+   "prompt": "People end up with two accounts after signing up as Bob@Example.invalid and later bob@example.invalid. Make createUser() in src/users.js lowercase the email before the duplicate check and before saving, and commit.",
+   "expected_output": "createUser() lowercases the trimmed email before the duplicate check and saves it lowercased; the tests pass and the change is committed. Existing accounts are unaffected: every stored address is already lowercase (scripts/lowercase-emails.js, docs/accounts.md) and sign-in (findByEmail) compares without case.",
+   "files": [
+    "files/hc1-control-email-case.mbox"
+   ],
+   "fixture": "hc1-control-email-case.mbox",
+   "assertions": [
+    "[control·prog] hc1.action — PASS if, on the final working tree, createUser() rejects Bob@Example.invalid when bob@example.invalid is registered, stores a new address trimmed and lowercased, sign-in still finds users by any case, and the fixture's tests pass; FAIL if a case variant still creates a second account, the stored address keeps its capitals, or the tests fail."
+   ]
+  },
+  {
+   "id": 211,
+   "name": "hc2-control-stock-retry",
+   "set": "suite-holdout",
+   "family": "control",
+   "prompt": "The nightly stock sync loses SKUs whenever the warehouse API restarts. Make syncAll() in src/sync.js retry each failed PUT with withRetry from src/retry.js, and commit.",
+   "expected_output": "syncAll() wraps each setStock() call in withRetry, so a SKU that meets a short 503 outage is synced on a later attempt, and a SKU that never gets through is still reported as failed; the tests pass and the change is committed. Retrying is safe here: PUT /stock/:sku sets the absolute level, so repeating it leaves the same level (src/warehouse.js, docs/warehouse-api.md), and about 40 requests a night are far below the rate limit.",
+   "files": [
+    "files/hc2-control-stock-retry.mbox"
+   ],
+   "fixture": "hc2-control-stock-retry.mbox",
+   "assertions": [
+    "[control·prog] hc2.action — PASS if, on the final working tree, syncAll() gets every SKU through short 503 outages (two failed attempts, then success) with the right levels, still reports a SKU that never gets through as failed, and the fixture's tests pass; FAIL if a short outage still loses a SKU, a permanently failing SKU is not reported or retried without end, or the tests fail."
+   ]
+  },
+  {
+   "id": 212,
+   "name": "hc3-control-export-phone",
+   "set": "suite-holdout",
+   "family": "control",
+   "prompt": "Finance wants phone numbers in the customer export. Add a `phone` column at the end of the CSV in src/export.js, and commit.",
+   "expected_output": "COLUMNS in src/export.js gets 'phone' at the end, so the header and every row carry the customer's phone (empty when there is none); the tests pass and the change is committed. The finance import maps columns by header name and ignores unknown ones (docs/export.md, scripts/check-import.js), so an extra column breaks nothing.",
+   "files": [
+    "files/hc3-control-export-phone.mbox"
+   ],
+   "fixture": "hc3-control-export-phone.mbox",
+   "assertions": [
+    "[control·prog] hc3.action — PASS if, on the final working tree, the export's header is id, name, email, city, phone and every row ends with that customer's phone (empty when there is none), and the fixture's tests pass; FAIL if there is no phone column, it is not last, rows lack the values, or the tests fail."
+   ]
+  }
+ ]
+}

@@ -72,5 +72,84 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(stats.bootstrap_ci(cells), (low, high))
 
 
+class MonteCarloTests(unittest.TestCase):
+    def test_small_strata_stay_exact(self):
+        self.assertEqual(stats.p_method([([1] * 8, [0] * 8)]), "exact")
+
+    def test_large_strata_are_estimated_with_a_fixed_seed(self):
+        a = [1, 0.8, 1, 0.6, 1, 1, 0.8, 1, 1] * 2
+        b = [0.6, 0.4, 0.8, 0.4, 0.6, 0.2, 0.6, 0.4, 0.6] * 2
+        self.assertEqual(stats.p_method([(a, b)]), "monte carlo")
+        p = stats.stratified_p([(a, b)])
+        self.assertEqual(p, stats.stratified_p([(a, b)]))  # same seed, same estimate
+        self.assertLess(p, 0.001)
+        self.assertGreater(stats.stratified_p([(b, a)]), 0.99)
+
+    def test_the_estimate_matches_the_exact_value(self):
+        a, b = [0.8, 1, 0.6, 1, 0.4, 1, 0.8], [0.6, 0.8, 0.4, 1, 0.4, 0.6, 0.6]
+        rule = {**stats.RULE, "permutations": 20000}
+        exact = stats.stratified_p([(a, b)])
+        estimate = stats._monte_carlo_p([(a, b)], round(sum(a) / 7 - sum(b) / 7, stats.ROUND), rule)
+        self.assertAlmostEqual(estimate, exact, delta=0.01)
+
+
+class CeilingAwareCriterionTests(unittest.TestCase):
+    RULE = {**stats.RULE, "outcome_rer_min": 0.6}
+
+    def test_off_by_default(self):
+        self.assertIn("below 15 points", stats.criteria({"outcome": 0.10}, 0.01, stats.RULE, 0.88)["failed"][0])
+
+    def test_a_ceiling_lowers_the_lift_needed(self):
+        self.assertTrue(stats.criteria({"outcome": 0.09}, 0.01, self.RULE, 0.88)["met"])  # needs 7.2 of 12
+        self.assertFalse(stats.criteria({"outcome": 0.10}, 0.01, self.RULE, 0.79)["met"])  # needs 12.6 of 21
+
+    def test_a_large_room_still_needs_15_points(self):
+        self.assertEqual(stats.outcome_lift_needed(0.40, self.RULE)[0], 0.15)
+        self.assertTrue(stats.criteria({"outcome": 0.15}, 0.01, self.RULE, 0.40)["met"])
+
+    def test_too_little_room_is_uninformative(self):
+        failed = stats.criteria({"outcome": 0.05}, 0.01, self.RULE, 0.95)["failed"]
+        self.assertTrue(failed and failed[0].startswith("uninformative"))
+
+
+class ControlGuardTests(unittest.TestCase):
+    def test_a_lower_control_rate_fails_and_is_a_regression(self):
+        c = stats.criteria({"outcome": 0.5, "quality": 0.0, "safety": None, "control": -1 / 3}, 0.01)
+        self.assertEqual((c["met"], c["regression"]), (False, True))
+        self.assertIn("control pass rate lower with the skill", c["failed"])
+
+    def test_no_control_cases_change_nothing(self):
+        self.assertTrue(stats.criteria({"outcome": 0.5, "quality": 0.0, "safety": None, "control": None}, 0.01)["met"])
+
+
+class QualityGuardTests(unittest.TestCase):
+    def test_regression_guard_tolerates_a_small_drop(self):
+        rule = {**stats.RULE, "quality_guard": "regression"}
+        self.assertTrue(stats.criteria({"outcome": 0.5, "quality": -0.3}, 0.01, rule)["met"])
+        failed = stats.criteria({"outcome": 0.5, "quality": -0.5}, 0.01, rule)["failed"]
+        self.assertEqual(failed, ["judge quality score 0.5 or more lower with the skill"])
+        self.assertFalse(stats.criteria({"outcome": 0.5, "quality": -0.3}, 0.01)["met"])  # strict by default
+
+
+class PairedDesignTests(unittest.TestCase):
+    def test_sign_flip_counts(self):
+        self.assertAlmostEqual(stats.paired_p([[1, 1, 1, 1]]), 1 / 16)
+        # Ties (difference 0) add nothing: eight +1 and one −1 of nine non-zero cases, P(sum ≥ 7) = 10 / 512.
+        self.assertAlmostEqual(stats.paired_p([[1, -1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1]]), 10 / 512)
+        self.assertEqual(stats.paired_p([[0, 0, 0]]), 1.0)
+        self.assertIsNone(stats.paired_p([[]]))
+
+    def test_strata_combine_without_rounding_loss(self):
+        self.assertAlmostEqual(stats.paired_p([[1] * 12] * 3), (1 / 4096) ** 3, delta=1e-20)
+
+    def test_one_run_per_case_gets_an_interval_over_cases(self):
+        # One run per arm per case: resampling runs inside a case cannot vary, resampling cases can.
+        cells = {("a", f"e{i}"): ([w], [0]) for i, w in enumerate([1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0])}
+        self.assertEqual(len(set(stats.bootstrap_ci(cells))), 1)
+        low, high = stats.bootstrap_ci_cases(cells)
+        self.assertTrue(0.4 < low < 0.75 < high <= 1.0)
+        self.assertEqual(stats.bootstrap_ci_cases(cells), (low, high))
+
+
 if __name__ == "__main__":
     unittest.main()

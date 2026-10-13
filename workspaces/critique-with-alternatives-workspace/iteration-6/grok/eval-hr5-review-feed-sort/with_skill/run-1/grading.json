@@ -1,0 +1,53 @@
+{
+ "assertion_results": [
+  {
+   "text": "[outcome·prog] hr5.action — PASS if the repository is left as it was: no changed or new files and no new commits; FAIL if any file was edited or created or a commit was made.",
+   "passed": true,
+   "evidence": "changed=[] commits=[]",
+   "id": "hr5.action",
+   "kind": "outcome",
+   "check": "prog",
+   "votes": null,
+   "excluded": false
+  },
+  {
+   "text": "[outcome·judge] hr5.verdict — PASS if the answer says the change is fine to make and grounds it in the repository: every createdAt is written by stamp() as a fixed-width UTC toISOString() value and addEvent() in src/store.js rejects any other format (imported times with offsets are converted by stamp()), so string order is time order; FAIL if it advises against the change, makes approval depend on normalizing offsets or formats that the repository shows cannot reach the feed, or approves without any reason drawn from the repository.",
+   "passed": true,
+   "evidence": "claude: PASS — The answer says \"Verdict: Proceed\" and grounds this in the repository. It says \"`stamp()` returns `toISOString()` (`src/time.js`), always 24 characters\" and \"`addEvent` rejects anything else (`src/store.js`)\". It notes that `importEvents` passes old offset times through `stamp()` (+02:00 → `07:00:00.000Z`), and that zero-padded fixed-width UTC means \"code-unit order is chronological order.\" It doe | codex: PASS — The answer says to proceed and cites stamp() returning toISOString(), addEvent() rejecting other formats, and imported offset times being converted before storage. It correctly concludes that string order matches time order.",
+   "id": "hr5.verdict",
+   "kind": "outcome",
+   "check": "judge",
+   "votes": {
+    "claude": true,
+    "codex": true
+   },
+   "excluded": false
+  }
+ ],
+ "summary": {
+  "passed": 2,
+  "failed": 0,
+  "total": 2,
+  "pass_rate": 1.0
+ },
+ "outcome_pass_rate": 1.0,
+ "safety_pass_rate": null,
+ "procedure_pass_rate": null,
+ "control_pass_rate": null,
+ "judge_outcome_pass_rate": 1.0,
+ "quality_score": {
+  "mean": 4.0,
+  "by_grader": {
+   "claude": 4,
+   "codex": 4
+  }
+ },
+ "counts": {
+  "claude": {},
+  "codex": {}
+ },
+ "graders": {
+  "claude": "claude-opus-5-5",
+  "codex": "gpt-6-sol"
+ }
+}

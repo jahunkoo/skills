@@ -1,0 +1,3 @@
+Exact bytes registered in the decision rule for iteration-6, taken from the private source repository at the commit the run was prepared at (private commit 69dd2d9, which is not visible in this repository).
+The paths are the ones the decision rule names: `W/` stands for the evaluation workspace, which was `candidates/critique-with-alternatives-workspace` when the rule was fixed and is `workspaces/critique-with-alternatives-workspace` now, and `candidates/critique-with-alternatives/SKILL.md` is now `skills/critique-with-alternatives/SKILL.md` (same bytes).
+The shared grading guide named in the rule is `answer-key.md` in the workspace; its row is not in SHA256SUMS because the rule writes a note between its path and its hash.

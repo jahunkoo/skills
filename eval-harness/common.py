@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-ASSERTION_RE = re.compile(r"^\[(?P<kind>gate|outcome|procedure|scope)·(?P<check>prog|judge)\] (?P<id>\S+) — (?P<text>.+)$")
+ASSERTION_RE = re.compile(r"^\[(?P<kind>gate|outcome|procedure|scope|control)·(?P<check>prog|judge)\] (?P<id>\S+) — (?P<text>.+)$")
 ARMS = ("with_skill", "without_skill")
 
 
@@ -57,6 +57,8 @@ def load_config(path):
     for name, s in cfg["sets"].items():
         for key in ("evals", "files", "checks", "answer_key"):
             s[key] = REPO / s[key]
+        # Optional per-fixture answer keys, for a set whose evals use different fixtures
+        s["answer_keys"] = {fx: REPO / p for fx, p in (s.get("answer_keys") or {}).items()}
         s["evals_file"] = s["evals"]
         data = load_json(s["evals_file"])
         if data is None:

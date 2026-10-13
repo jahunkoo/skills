@@ -1,0 +1,155 @@
+From fcb8ba5ade1eaa1b92aa589ace3c79884932f322 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Tue, 6 May 2025 09:00:00 +0000
+Subject: [PATCH 1/3] feat: team activity feed
+
+---
+ package.json      |  9 +++++++++
+ src/feed.js       |  4 ++++
+ src/store.js      | 11 +++++++++++
+ src/time.js       |  4 ++++
+ test/feed.test.js | 17 +++++++++++++++++
+ 5 files changed, 45 insertions(+)
+ create mode 100644 package.json
+ create mode 100644 src/feed.js
+ create mode 100644 src/store.js
+ create mode 100644 src/time.js
+ create mode 100644 test/feed.test.js
+
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..651b6d3
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,9 @@
++{
++  "name": "team-feed",
++  "version": "1.0.0",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "test": "node --test"
++  }
++}
+diff --git a/src/feed.js b/src/feed.js
+new file mode 100644
+index 0000000..82bc167
+--- /dev/null
++++ b/src/feed.js
+@@ -0,0 +1,4 @@
++// Newest first.
++export function sortFeed(events) {
++  return [...events].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
++}
+diff --git a/src/store.js b/src/store.js
+new file mode 100644
+index 0000000..6da3d3f
+--- /dev/null
++++ b/src/store.js
+@@ -0,0 +1,11 @@
++import { stamp } from './time.js';
++
++// createdAt always comes from stamp(); anything else is rejected.
++const ISO_UTC = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/;
++
++export function addEvent(events, { actor, action, createdAt = stamp() }) {
++  if (!ISO_UTC.test(createdAt)) throw new Error(`createdAt must be a UTC timestamp from stamp(): ${createdAt}`);
++  const event = { id: events.length + 1, actor, action, createdAt };
++  events.push(event);
++  return event;
++}
+diff --git a/src/time.js b/src/time.js
+new file mode 100644
+index 0000000..2c54845
+--- /dev/null
++++ b/src/time.js
+@@ -0,0 +1,4 @@
++// UTC with milliseconds, always 24 characters, e.g. 2025-05-06T09:30:00.000Z.
++export function stamp(date = new Date()) {
++  return date.toISOString();
++}
+diff --git a/test/feed.test.js b/test/feed.test.js
+new file mode 100644
+index 0000000..7020efa
+--- /dev/null
++++ b/test/feed.test.js
+@@ -0,0 +1,17 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { addEvent } from '../src/store.js';
++import { sortFeed } from '../src/feed.js';
++
++test('newest first', () => {
++  const events = [];
++  addEvent(events, { actor: 'alice', action: 'commented', createdAt: '2025-05-06T09:00:00.000Z' });
++  addEvent(events, { actor: 'bob', action: 'closed', createdAt: '2025-05-06T11:00:00.000Z' });
++  addEvent(events, { actor: 'carol', action: 'opened', createdAt: '2025-05-05T23:59:59.999Z' });
++  assert.deepEqual(sortFeed(events).map((e) => e.actor), ['bob', 'alice', 'carol']);
++});
++
++test('timestamps not from stamp() are rejected', () => {
++  assert.throws(() => addEvent([], { actor: 'alice', action: 'x', createdAt: '2025-05-06T11:00:00+02:00' }));
++  assert.throws(() => addEvent([], { actor: 'alice', action: 'x', createdAt: '2025-05-06 11:00' }));
++});
+
+From 68b473688665e8fc5c6c436217fce0309edc0db0 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Mon, 2 Jun 2025 09:00:00 +0000
+Subject: [PATCH 2/3] feat: import events from the old tracker
+
+---
+ src/import.js       | 8 ++++++++
+ test/import.test.js | 8 ++++++++
+ 2 files changed, 16 insertions(+)
+ create mode 100644 src/import.js
+ create mode 100644 test/import.test.js
+
+diff --git a/src/import.js b/src/import.js
+new file mode 100644
+index 0000000..1ab5f1f
+--- /dev/null
++++ b/src/import.js
+@@ -0,0 +1,8 @@
++import { addEvent } from './store.js';
++import { stamp } from './time.js';
++
++// The old tracker sends local times with offsets (2025-05-30T09:00:00+02:00); stamp() turns them into UTC.
++export function importEvents(events, rows) {
++  for (const row of rows) addEvent(events, { actor: row.user, action: row.what, createdAt: stamp(new Date(row.when)) });
++  return events;
++}
+diff --git a/test/import.test.js b/test/import.test.js
+new file mode 100644
+index 0000000..2cf6629
+--- /dev/null
++++ b/test/import.test.js
+@@ -0,0 +1,8 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { importEvents } from '../src/import.js';
++
++test('offsets are converted to UTC', () => {
++  const [e] = importEvents([], [{ user: 'bob', what: 'closed', when: '2025-05-30T09:00:00+02:00' }]);
++  assert.equal(e.createdAt, '2025-05-30T07:00:00.000Z');
++});
+
+From de8c9a767e022e345bf7b39611d166ca8f4c7af9 Mon Sep 17 00:00:00 2001
+From: fixture <fixture@example.invalid>
+Date: Fri, 20 Jun 2025 09:00:00 +0000
+Subject: [PATCH 3/3] notes: feed profile
+
+---
+ notes/perf.txt | 4 ++++
+ 1 file changed, 4 insertions(+)
+ create mode 100644 notes/perf.txt
+
+diff --git a/notes/perf.txt b/notes/perf.txt
+new file mode 100644
+index 0000000..f121c46
+--- /dev/null
++++ b/notes/perf.txt
+@@ -0,0 +1,4 @@
++sortFeed on 5,000 events:
++  61% Date parsing (new Date called twice per comparison)
++  24% sort
++  15% other
